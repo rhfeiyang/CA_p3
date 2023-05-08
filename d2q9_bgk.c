@@ -1,5 +1,5 @@
 #include "d2q9_bgk.h"
-
+#include <omp.h>
 /*zxx test-5.8*/
 /* The main processes in one step */
 int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obstacles);
@@ -36,7 +36,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
   ** the collision step is called before
   ** the streaming step and so values of interest
   ** are in the scratch-space grid */
-  
+
   for (int ii = 0; ii < params.nx; ii++)
   {
     for (int jj = 0; jj < params.ny; jj++)
@@ -134,9 +134,10 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
 int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obstacles) {
 
   /* loop over the cells in the grid */
-  for (int ii = 0; ii < params.nx; ii++)
+    #pragma omp parallel for schedule(static) collapse(2)
+  for (int jj = 0; jj < params.ny; jj++)
   {
-    for (int jj = 0; jj < params.ny; jj++)
+      for (int ii = 0; ii < params.nx; ii++)
     {
       /* if the cell contains an obstacle */
       if (obstacles[jj*params.nx + ii])
@@ -163,6 +164,7 @@ int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obst
 */
 int streaming(const t_param params, t_speed* cells, t_speed* tmp_cells) {
   /* loop over _all_ cells */
+    #pragma omp parallel for schedule(static) collapse(2)
   for (int ii = 0; ii < params.nx; ii++)
   {
     for (int jj = 0; jj < params.ny; jj++)
@@ -207,6 +209,7 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
   
   // top wall (bounce)
   jj = params.ny -1;
+#pragma omp parallel for schedule(static)
   for(ii = 0; ii < params.nx; ii++){
     cells[ii + jj*params.nx].speeds[4] = tmp_cells[ii + jj*params.nx].speeds[2];
     cells[ii + jj*params.nx].speeds[7] = tmp_cells[ii + jj*params.nx].speeds[5];
@@ -215,6 +218,7 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
 
   // bottom wall (bounce)
   jj = 0;
+#pragma omp parallel for schedule(static)
   for(ii = 0; ii < params.nx; ii++){
     cells[ii + jj*params.nx].speeds[2] = tmp_cells[ii + jj*params.nx].speeds[4];
     cells[ii + jj*params.nx].speeds[5] = tmp_cells[ii + jj*params.nx].speeds[7];
@@ -223,6 +227,7 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
 
   // left wall (inlet)
   ii = 0;
+#pragma omp parallel for schedule(static)
   for(jj = 0; jj < params.ny; jj++){
     local_density = ( cells[ii + jj*params.nx].speeds[0]
                       + cells[ii + jj*params.nx].speeds[2]
@@ -247,8 +252,8 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
 
   // right wall (outlet)
   ii = params.nx-1;
+#pragma omp parallel for schedule(static) collapse(2)
   for(jj = 0; jj < params.ny; jj++){
-
     for (int kk = 0; kk < NSPEEDS; kk++)
     {
       cells[ii + jj*params.nx].speeds[kk] = cells[ii-1 + jj*params.nx].speeds[kk];
