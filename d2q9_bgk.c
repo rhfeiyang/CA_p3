@@ -119,34 +119,31 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         /*d_equ[0] = w0 * local_density * (1.f + u[0] / c_sq
                                          + (u[0] * u[0]) / (2.f * c_sq * c_sq)
                                          - u_sq / (2.f * c_sq));*/
-        d_equ[0] = _mm256_mul_ps(w0_vec,_mm256_mul_ps(local_density,_mm256_add_ps(
-                _mm256_div_ps(u[0], c_sq_vec),_mm256_div_ps(_mm256_mul_ps(u[0], u[0]),
-                _mm256_mul_ps(c_sq_vec, c_sq_vec))),_mm256_div_ps(u_sq, _mm256_mul_ps(c_sq_vec, _mm256_set1_ps(2.f)))));
+        __m256 wl0 = _mm256_mul_ps(w0_vec,local_density);
+        __m256 wl1 = _mm256_mul_ps(w1_vec,local_density);
+        __m256 wl2 = _mm256_mul_ps(w2_vec,local_density);
+        __m256 temp1 = _mm256_sub_ps(_mm256_set1_ps(1.f),_mm256_div_ps(u_sq,_mm256_mul_ps(_mm256_set1_ps(2.f),c_sq_vec)));
+        __m256 deno = _mm256_mul_ps(_mm256_set1_ps(2.f),_mm256_mul_ps(c_sq_vec,c_sq_vec));
+        d_equ[0] = _mm256_mul_ps(wl0,_mm256_add_ps(temp1,_mm256_add_ps(_mm256_div_ps(u[0],c_sq_vec),
+                    _mm256_div_ps(_mm256_mul_ps(u[0],u[0]),deno))));
+        d_equ[1] = _mm256_mul_ps(wl1,_mm256_add_ps(temp1,_mm256_add_ps(_mm256_div_ps(u[1],c_sq_vec),
+                  _mm256_div_ps(_mm256_mul_ps(u[1],u[1]),deno))));
+        d_equ[2] = _mm256_mul_ps(wl1,_mm256_add_ps(temp1,_mm256_add_ps(_mm256_div_ps(u[2],c_sq_vec),
+                   _mm256_div_ps(_mm256_mul_ps(u[2],u[2]),deno))));
+        d_equ[3] = _mm256_mul_ps(wl1,_mm256_add_ps(temp1,_mm256_add_ps(_mm256_div_ps(u[3],c_sq_vec),
+                   _mm256_div_ps(_mm256_mul_ps(u[3],u[3]),deno))));
+        d_equ[4] = _mm256_mul_ps(wl1,_mm256_add_ps(temp1,_mm256_add_ps(_mm256_div_ps(u[4],c_sq_vec),
+                  _mm256_div_ps(_mm256_mul_ps(u[4],u[4]),deno))));
+        d_equ[5] = _mm256_mul_ps(wl2,_mm256_add_ps(temp1,_mm256_add_ps(_mm256_div_ps(u[5],c_sq_vec),
+                   _mm256_div_ps(_mm256_mul_ps(u[5],u[5]),deno))));
+        d_equ[6] = _mm256_mul_ps(wl2,_mm256_add_ps(temp1,_mm256_add_ps(_mm256_div_ps(u[6],c_sq_vec),
+                    _mm256_div_ps(_mm256_mul_ps(u[6],u[6]),deno))));
+        d_equ[7] = _mm256_mul_ps(wl2,_mm256_add_ps(temp1,_mm256_add_ps(_mm256_div_ps(u[7],c_sq_vec),
+                   _mm256_div_ps(_mm256_mul_ps(u[7],u[7]),deno))));
+        d_equ[8] = _mm256_mul_ps(wl2,_mm256_add_ps(temp1,_mm256_add_ps(_mm256_div_ps(u[8],c_sq_vec),
+                  _mm256_div_ps(_mm256_mul_ps(u[8],u[8]),deno))));
 
-        d_equ[1] = _mm256_mul_ps(w0_vec,_mm256_mul_ps(local_density,_mm256_add_ps(
-                  _mm256_div_ps(u[1], c_sq_vec),_mm256_div_ps(_mm256_mul_ps(u[1], u[1]),
-                                                              _mm256_mul_ps(c_sq_vec, c_sq_vec))),_mm256_div_ps(u_sq, _mm256_mul_ps(c_sq_vec, _mm256_set1_ps(2.f)) ) ));
-          d_equ[2] = _mm256_mul_ps(w0_vec,_mm256_mul_ps(local_density,_mm256_add_ps(
-                  _mm256_div_ps(u[2], c_sq_vec),_mm256_div_ps(_mm256_mul_ps(u[2], u[2]),
-                                                              _mm256_mul_ps(c_sq_vec, c_sq_vec))),_mm256_div_ps(u_sq, _mm256_mul_ps(c_sq_vec, _mm256_set1_ps(2.f)))));
-          d_equ[3] = _mm256_mul_ps(w0_vec,_mm256_mul_ps(local_density,_mm256_add_ps(
-                  _mm256_div_ps(u[3], c_sq_vec),_mm256_div_ps(_mm256_mul_ps(u[3], u[3]),
-                                                              _mm256_mul_ps(c_sq_vec, c_sq_vec))),_mm256_div_ps(u_sq, _mm256_mul_ps(c_sq_vec, _mm256_set1_ps(2.f)))));
-          d_equ[4] = _mm256_mul_ps(w0_vec,_mm256_mul_ps(local_density,_mm256_add_ps(
-                  _mm256_div_ps(u[4], c_sq_vec),_mm256_div_ps(_mm256_mul_ps(u[4], u[4]),
-                                                              _mm256_mul_ps(c_sq_vec, c_sq_vec))),_mm256_div_ps(u_sq, _mm256_mul_ps(c_sq_vec, _mm256_set1_ps(2.f)))));
-          d_equ[5] = _mm256_mul_ps(w0_vec,_mm256_mul_ps(local_density,_mm256_add_ps(
-                  _mm256_div_ps(u[5], c_sq_vec),_mm256_div_ps(_mm256_mul_ps(u[5], u[5]),
-                                                              _mm256_mul_ps(c_sq_vec, c_sq_vec))),_mm256_div_ps(u_sq, _mm256_mul_ps(c_sq_vec, _mm256_set1_ps(2.f)))));
-          d_equ[6] = _mm256_mul_ps(w0_vec,_mm256_mul_ps(local_density,_mm256_add_ps(
-                  _mm256_div_ps(u[6], c_sq_vec),_mm256_div_ps(_mm256_mul_ps(u[6], u[6]),
-                                                              _mm256_mul_ps(c_sq_vec, c_sq_vec))),_mm256_div_ps(u_sq, _mm256_mul_ps(c_sq_vec, _mm256_set1_ps(2.f)))));
-          d_equ[7] = _mm256_mul_ps(w0_vec,_mm256_mul_ps(local_density,_mm256_add_ps(
-                  _mm256_div_ps(u[7], c_sq_vec),_mm256_div_ps(_mm256_mul_ps(u[7], u[7]),
-                                                              _mm256_mul_ps(c_sq_vec, c_sq_vec))),_mm256_div_ps(u_sq, _mm256_mul_ps(c_sq_vec, _mm256_set1_ps(2.f)))));
-          d_equ[8] = _mm256_mul_ps(w0_vec,_mm256_mul_ps(local_density,_mm256_add_ps(
-                  _mm256_div_ps(u[8], c_sq_vec),_mm256_div_ps(_mm256_mul_ps(u[8], u[8]),
-                                                              _mm256_mul_ps(c_sq_vec, c_sq_vec))),_mm256_div_ps(u_sq, _mm256_mul_ps(c_sq_vec, _mm256_set1_ps(2.f)))));
+
 
         /* axis speeds: weight w1 */
         /*d_equ[1] = w1 * local_density * (1.f + u[1] / c_sq

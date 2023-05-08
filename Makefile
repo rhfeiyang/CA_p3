@@ -13,12 +13,12 @@ SCRIPTS_DIR=./scripts
 .PHONY: all visual check clean
 
 all: clean
-	$(CC) $(CFLAGS) $(SRC) $(LIBS) -o $(EXE) 
+	$(CC) $(CFLAGS) $(SRC) $(LIBS) -o $(EXE) -mavx
 
 visual: clean
 	rm -rf $(RESULTS_DIR)/visual
 	mkdir -p $(RESULTS_DIR)/visual
-	$(CC) $(CFLAGS) $(SRC) $(LIBS) -o $(EXE) -DVISUAL
+	$(CC) $(CFLAGS) $(SRC) $(LIBS) -o $(EXE) -DVISUAL -mavx
 	./$(EXE) $(PARAMS_DIR)/visual.params $(OBSTACLES_DIR)/CS110.dat
 	gnuplot $(SCRIPTS_DIR)/visual.plt
 
