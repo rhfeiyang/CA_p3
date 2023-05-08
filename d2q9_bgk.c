@@ -1,6 +1,6 @@
 #include "d2q9_bgk.h"
 
-
+/*zxx test-5.8*/
 /* The main processes in one step */
 int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obstacles);
 int streaming(const t_param params, t_speed* cells, t_speed* tmp_cells);
