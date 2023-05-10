@@ -1,4 +1,4 @@
-# Makefile
+#  Makefile
 CC = gcc
 CFLAGS = -std=c99 -Wall -Ofast
 LIBS = -lm -fopenmp -march=native
