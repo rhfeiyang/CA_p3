@@ -50,14 +50,16 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
   {
     for (int ii = 0; ii < params.nx; ii+=SIMD_WIDTH)
     {
-      if (!obstacles[ii + jj*params.nx]){
+      int index = ii + jj * params.nx;
+      if (!obstacles[index])
+      {
         /* compute local density total */
         __m256 local_density = _mm256_setzero_ps();
         /*float local_density = 0.f;*/
 
         for (int kk = 0; kk < NSPEEDS; kk++)
         {
-          __m256 speeds = _mm256_loadu_ps(&cells[ii + jj * params.nx].speeds[kk]);
+          __m256 speeds = _mm256_loadu_ps(&cells[index].speeds[kk]);
           local_density = _mm256_add_ps(local_density, speeds);
         }
 
@@ -193,26 +195,35 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
 */
 int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obstacles) {
 
+  const int SIMD_WIDTH = 8;
+
   /* loop over the cells in the grid */
     #pragma omp parallel for schedule(static) collapse(2)
   for (int jj = 0; jj < params.ny; jj++)
   {
-      for (int ii = 0; ii < params.nx; ii++)
+      for (int ii = 0; ii < params.nx; ii+=SIMD_WIDTH)
     {
+      int index = jj * params.nx + ii;
       /* if the cell contains an obstacle */
-      if (obstacles[jj*params.nx + ii])
+      if (obstacles[index])
       {
-        /* called after collision, so taking values from scratch space
-        ** mirroring, and writing into main grid */
-        tmp_cells[ii + jj*params.nx].speeds[0] = cells[ii + jj*params.nx].speeds[0];
-        tmp_cells[ii + jj*params.nx].speeds[1] = cells[ii + jj*params.nx].speeds[3];
-        tmp_cells[ii + jj*params.nx].speeds[2] = cells[ii + jj*params.nx].speeds[4];
-        tmp_cells[ii + jj*params.nx].speeds[3] = cells[ii + jj*params.nx].speeds[1];
-        tmp_cells[ii + jj*params.nx].speeds[4] = cells[ii + jj*params.nx].speeds[2];
-        tmp_cells[ii + jj*params.nx].speeds[5] = cells[ii + jj*params.nx].speeds[7];
-        tmp_cells[ii + jj*params.nx].speeds[6] = cells[ii + jj*params.nx].speeds[8];
-        tmp_cells[ii + jj*params.nx].speeds[7] = cells[ii + jj*params.nx].speeds[5];
-        tmp_cells[ii + jj*params.nx].speeds[8] = cells[ii + jj*params.nx].speeds[6];
+        // Load data from cells into SIMD registers
+        __m256i speeds = _mm256_loadu_si256((__m256i*)(cells + index));
+        // Shuffle the speeds according to the desired pattern
+        __m256i shuffled_speeds = _mm256_permutevar8x32_epi32(speeds, _mm256_setr_epi32(0, 3, 4, 1, 2, 7, 8, 5));
+        // Store the shuffled speeds into tmp_cells
+        _mm256_storeu_si256((__m256i *)(tmp_cells + index), shuffled_speeds);
+         /* called after collision, so taking values from scratch space
+         ** mirroring, and writing into main grid */
+          /*tmp_cells[index].speeds[0] = cells[index].speeds[0];
+          tmp_cells[index].speeds[1] = cells[index].speeds[3];
+          tmp_cells[index].speeds[2] = cells[index].speeds[4];
+          tmp_cells[index].speeds[3] = cells[index].speeds[1];
+          tmp_cells[index].speeds[4] = cells[index].speeds[2];
+          tmp_cells[index].speeds[5] = cells[index].speeds[7];
+          tmp_cells[index].speeds[6] = cells[index].speeds[8];
+          tmp_cells[index].speeds[7] = cells[index].speeds[5];
+          tmp_cells[index].speeds[8] = cells[index].speeds[6];*/
       }
     }
   }
