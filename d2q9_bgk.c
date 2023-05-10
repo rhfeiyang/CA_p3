@@ -256,12 +256,18 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
 
     // right wall (outlet)
     ii = params.nx-1;
-#pragma omp parallel for schedule(static) collapse(2)
+#pragma omp parallel for schedule(static) 
     for(jj = 0; jj < params.ny; jj++){
-        for (int kk = 0; kk < NSPEEDS; kk++)
-        {
-            cells[ii + jj*params.nx].speeds[kk] = cells[ii-1 + jj*params.nx].speeds[kk];
-        }
+        
+        cells[ii + jj*params.nx].speeds[0] = cells[ii-1 + jj*params.nx].speeds[0];
+        cells[ii + jj*params.nx].speeds[1] = cells[ii-1 + jj*params.nx].speeds[1];
+        cells[ii + jj*params.nx].speeds[2] = cells[ii-1 + jj*params.nx].speeds[2];
+        cells[ii + jj*params.nx].speeds[3] = cells[ii-1 + jj*params.nx].speeds[3];
+        cells[ii + jj*params.nx].speeds[4] = cells[ii-1 + jj*params.nx].speeds[4];
+        cells[ii + jj*params.nx].speeds[5] = cells[ii-1 + jj*params.nx].speeds[5];
+        cells[ii + jj*params.nx].speeds[6] = cells[ii-1 + jj*params.nx].speeds[6];
+        cells[ii + jj*params.nx].speeds[7] = cells[ii-1 + jj*params.nx].speeds[7];
+        cells[ii + jj*params.nx].speeds[8] = cells[ii-1 + jj*params.nx].speeds[8];
 
     }
 
