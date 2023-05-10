@@ -1,7 +1,7 @@
 # Makefile
 CC = gcc
 CFLAGS = -std=c99 -Wall -Ofast
-LIBS = -lm -fopenmp
+LIBS = -lm -fopenmp -march=x86-64-v4
 SRC = main.c d2q9_bgk.c calc.c utils.c 
 EXE=lbm
 
