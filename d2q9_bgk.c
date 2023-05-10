@@ -133,41 +133,37 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
 }
 
 
-int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obstacles) {
 
-    /* loop over the cells in the grid */
-#pragma omp parallel for schedule(static) collapse(2)
-    for (int jj = 0; jj < params.ny; jj++)
-    {
-        for (int ii = 0; ii < params.nx; ii++)
-        {
-            /* if the cell contains an obstacle */
-            if (obstacles[jj*params.nx + ii])
-            {
-                /* called after collision, so taking values from scratch space
-                ** mirroring, and writing into main grid */
-                tmp_cells[ii + jj*params.nx].speeds[0] = cells[ii + jj*params.nx].speeds[0];
-                tmp_cells[ii + jj*params.nx].speeds[1] = cells[ii + jj*params.nx].speeds[3];
-                tmp_cells[ii + jj*params.nx].speeds[2] = cells[ii + jj*params.nx].speeds[4];
-                tmp_cells[ii + jj*params.nx].speeds[3] = cells[ii + jj*params.nx].speeds[1];
-                tmp_cells[ii + jj*params.nx].speeds[4] = cells[ii + jj*params.nx].speeds[2];
-                tmp_cells[ii + jj*params.nx].speeds[5] = cells[ii + jj*params.nx].speeds[7];
-                tmp_cells[ii + jj*params.nx].speeds[6] = cells[ii + jj*params.nx].speeds[8];
-                tmp_cells[ii + jj*params.nx].speeds[7] = cells[ii + jj*params.nx].speeds[5];
-                tmp_cells[ii + jj*params.nx].speeds[8] = cells[ii + jj*params.nx].speeds[6];
-            }
-        }
+int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obstacles) {
+    #pragma omp parallel for schedule(static) 
+    for (int jj = 0; jj < params.ny; jj++) {
+      for (int ii = 0; ii < params.nx; ii++) {
+          /* if the cell contains an obstacle */
+      int index = ii + jj * params.nx;
+      if (obstacles[jj * params.nx + ii])
+      {
+        tmp_cells[index].speeds[0] = cells[index].speeds[0];
+        tmp_cells[index].speeds[1] = cells[index].speeds[3];
+        tmp_cells[index].speeds[2] = cells[index].speeds[4];
+        tmp_cells[index].speeds[3] = cells[index].speeds[1];
+        tmp_cells[index].speeds[4] = cells[index].speeds[2];
+        tmp_cells[index].speeds[5] = cells[index].speeds[7];
+        tmp_cells[index].speeds[6] = cells[index].speeds[8];
+        tmp_cells[index].speeds[7] = cells[index].speeds[5];
+        tmp_cells[index].speeds[8] = cells[index].speeds[6];
+      }
+      }
+
     }
     return EXIT_SUCCESS;
 }
-
 
 /*
 ** Particles flow to the corresponding cell according to their speed direaction.
 */
 int streaming(const t_param params, t_speed* cells, t_speed* tmp_cells) {
     /* loop over _all_ cells */
-#pragma omp parallel for schedule(static) collapse(2)
+#pragma omp parallel for schedule(static) 
     for (int ii = 0; ii < params.nx; ii++)
     {
         for (int jj = 0; jj < params.ny; jj++)
@@ -256,7 +252,7 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
 
     // right wall (outlet)
     ii = params.nx-1;
-#pragma omp parallel for schedule(static) collapse(2)
+#pragma omp parallel for schedule(static) 
     for(jj = 0; jj < params.ny; jj++){
         for (int kk = 0; kk < NSPEEDS; kk++)
         {
