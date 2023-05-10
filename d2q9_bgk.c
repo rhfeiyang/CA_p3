@@ -207,11 +207,11 @@ int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obst
       /* if the cell contains an obstacle */
       if (obstacles[index])
       {
-        // Load data from cells into SIMD registers
+        /* Load data from cells into SIMD registers*/
         __m256i speeds = _mm256_loadu_si256((__m256i*)(cells + index));
-        // Shuffle the speeds according to the desired pattern
+        /* Shuffle the speeds according to the desired pattern*/
         __m256i shuffled_speeds = _mm256_permutevar8x32_epi32(speeds, _mm256_setr_epi32(0, 3, 4, 1, 2, 7, 8, 5));
-        // Store the shuffled speeds into tmp_cells
+        /* Store the shuffled speeds into tmp_cells*/
         _mm256_storeu_si256((__m256i *)(tmp_cells + index), shuffled_speeds);
          /* called after collision, so taking values from scratch space
          ** mirroring, and writing into main grid */
@@ -236,29 +236,42 @@ int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obst
 */
 int streaming(const t_param params, t_speed* cells, t_speed* tmp_cells) {
   /* loop over _all_ cells */
-    #pragma omp parallel for schedule(static) collapse(2)
-  for (int ii = 0; ii < params.nx; ii++)
+  const int SIMD_WIDTH = 8;
+  #pragma omp parallel for schedule(static) collapse(2)
+  for (int jj = 0; jj < params.ny; jj++)
   {
-    for (int jj = 0; jj < params.ny; jj++)
+    for (int ii = 0; ii < params.nx; ii+=SIMD_WIDTH)
     {
       /* determine indices of axis-direction neighbours
       ** respecting periodic boundary conditions (wrap around) */
       int y_n = (jj + 1) % params.ny;
-      int x_e = (ii + 1) % params.nx;
+      int x_e = (ii + 8) % params.nx; /*?*/
       int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
-      int x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
+      int x_w = (ii == 0) ? (params.nx - 8) : (ii - 8);/*?*/
       /* propagate densities from neighbouring cells, following
       ** appropriate directions of travel and writing into
       ** scratch space grid */
-      cells[ii  + jj *params.nx].speeds[0] = tmp_cells[ii + jj*params.nx].speeds[0]; /* central cell, no movement */
-      cells[x_e + jj *params.nx].speeds[1] = tmp_cells[ii + jj*params.nx].speeds[1]; /* east */
-      cells[ii  + y_n*params.nx].speeds[2] = tmp_cells[ii + jj*params.nx].speeds[2]; /* north */
-      cells[x_w + jj *params.nx].speeds[3] = tmp_cells[ii + jj*params.nx].speeds[3]; /* west */
-      cells[ii  + y_s*params.nx].speeds[4] = tmp_cells[ii + jj*params.nx].speeds[4]; /* south */
-      cells[x_e + y_n*params.nx].speeds[5] = tmp_cells[ii + jj*params.nx].speeds[5]; /* north-east */
-      cells[x_w + y_n*params.nx].speeds[6] = tmp_cells[ii + jj*params.nx].speeds[6]; /* north-west */
-      cells[x_w + y_s*params.nx].speeds[7] = tmp_cells[ii + jj*params.nx].speeds[7]; /* south-west */
-      cells[x_e + y_s*params.nx].speeds[8] = tmp_cells[ii + jj*params.nx].speeds[8]; /* south-east */
+      
+      /* Load data from tmp_cells into SIMD registers*/
+      __m256i speeds = _mm256_loadu_si256((__m256i*)(tmp_cells + ii + jj * params.nx));
+      /* Store the speeds into the appropriate cells using SIMD instructions*/
+      _mm256_storeu_si256((__m256i *)(cells + ii + jj * params.nx), speeds);
+      /* East */
+      _mm256_storeu_si256((__m256i*)(cells + x_e + jj * params.nx), speeds);
+      /* North */
+      _mm256_storeu_si256((__m256i*)(cells + ii + y_n * params.nx), speeds);
+      /* West */
+      _mm256_storeu_si256((__m256i*)(cells + x_w + jj * params.nx), speeds);
+      /* South */
+      _mm256_storeu_si256((__m256i*)(cells + ii + y_s * params.nx), speeds);
+      /* North-east */
+      _mm256_storeu_si256((__m256i*)(cells + x_e + y_n * params.nx), speeds);
+      /* North-west */
+      _mm256_storeu_si256((__m256i*)(cells + x_w + y_n * params.nx), speeds);
+      /* South-west */
+      _mm256_storeu_si256((__m256i*)(cells + x_w + y_s * params.nx), speeds);
+      /* South-east */
+      _mm256_storeu_si256((__m256i *)(cells + x_e + y_s * params.nx), speeds);
     }
   }
 
