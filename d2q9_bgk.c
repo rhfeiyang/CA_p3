@@ -188,9 +188,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
     return EXIT_SUCCESS;
 }
 
-/*
-** For obstacles, mirror their speed.
-*/
+
 int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obstacles) {
 
     /* loop over the cells in the grid */
