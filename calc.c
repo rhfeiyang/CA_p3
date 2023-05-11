@@ -1,5 +1,5 @@
 #include "calc.h"
-
+/*add omp*/
 /* set inlets velocity there are two type inlets*/
 int set_inlets(const t_param params, float* inlets) {
   #pragma omp parallel for schedule(static)
