@@ -55,8 +55,12 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
     for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
     {
       const int pos = ii + jj*params.nx;
-      __m256 data[NSPEEDS]={_mm256_load_ps(&cells[0].cells[pos]),_mm256_load_ps(&cells[1].cells[pos]),_mm256_load_ps(&cells[2].cells[pos]),_mm256_load_ps(&cells[3].cells[pos]),_mm256_load_ps(&cells[4].cells[pos]),_mm256_load_ps(&cells[5].cells[pos]),_mm256_load_ps(&cells[6].cells[pos]),_mm256_load_ps(&cells[7].cells[pos]),_mm256_load_ps(&cells[8].cells[pos])};
-      __m256i obstacle_mask=_mm256_xor_si256(_mm256_load_si256((__m256i *)&obstacles[pos]),_mm256_set1_epi32(1));
+      __m256 data[NSPEEDS]={_mm256_loadu_ps(&cells[0].cells[pos]),_mm256_loadu_ps(&cells[1].cells[pos]),_mm256_loadu_ps(&cells[2].cells[pos]),
+                            _mm256_loadu_ps(&cells[3].cells[pos]),_mm256_loadu_ps(&cells[4].cells[pos]),
+                            _mm256_loadu_ps(&cells[5].cells[pos]),_mm256_loadu_ps(&cells[6].cells[pos]),
+                            _mm256_loadu_ps(&cells[7].cells[pos]),_mm256_loadu_ps(&cells[8].cells[pos])};
+
+      __m256i obstacle_mask=_mm256_xor_si256(_mm256_loadu_si256((__m256i *)&obstacles[pos]),_mm256_set1_epi32(1));
       /* __m256i obstacle_mask=_mm256_load_si256((__m256i *)&obstacles[pos]); */
 /*       int tmp[9];
       _mm256_storeu_si256(tmp,obstacle_mask);
@@ -245,40 +249,15 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
                                         _mm256_div_ps(_mm256_mul_ps(u_vec[8],u_vec[8]), two_csq_csq_vec)),
                                 u_sq_2_c_sq_vec));
 
-
-
-        /* float d_equ_0 = w0 * local_density * (1.f + u[0] / c_sq
-                                         + (u[0] * u[0]) / two_csq_csq
-                                         - u_sq_2_c_sq);
-        __m256 two_csq_csq_vec=_mm256_set1_ps(two_csq_csq);
-        __m256 u_sq_2_c_sq_vec=_mm256_set1_ps(u_sq_2_c_sq);
-
-        __m128 w1_vec = _mm_set_ps1(w1);
-        __m128 w2_vec = _mm_set_ps1(w2);
-        __m256 w=_mm256_insertf128_ps(_mm256_castps128_ps256(w1_vec),w2_vec,1);
-        __m256 local_density_vec = _mm256_set1_ps(local_density);
-        __m256 one= _mm256_set1_ps(1.f);
-        __m256 u_1_8= _mm256_load_ps(&u[1]);
-        __m256 c_sq_vec= _mm256_set1_ps(c_sq);
-
-        __m256 d_egu_vec = _mm256_mul_ps(
-                _mm256_mul_ps(w,local_density_vec),
-                _mm256_sub_ps(
-                        _mm256_add_ps(
-                                _mm256_add_ps(one, _mm256_div_ps(u_1_8,c_sq_vec)),
-                                _mm256_div_ps(_mm256_mul_ps(u_1_8,u_1_8), two_csq_csq_vec)),
-                        u_sq_2_c_sq_vec)); */
-
         /* simd */
         /* printf("%f\n",cells[pos].speeds[1]); */
         for (int kk = 0; kk < NSPEEDS; kk++)
         {
-            _mm256_store_ps(&tmp_cells[kk].cells[pos],
+            _mm256_storeu_ps(&tmp_cells[kk].cells[pos],
                                     _mm256_add_ps(data[kk],
                                         _mm256_mul_ps(
                                         _mm256_set1_ps(params.omega), 
-                                    _mm256_sub_ps(d_equ[kk],data[kk])))
-                            );
+                                    _mm256_sub_ps(d_equ[kk],data[kk]))));
         }
         /* relaxation step */
         /*for (int kk = 0; kk < NSPEEDS; kk++)

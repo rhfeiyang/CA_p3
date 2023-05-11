@@ -38,7 +38,6 @@ float av_velocity(const t_param params, t_speed_t* cells, int* obstacles)
         }
 
         /* x-component of velocity */
-        int pos = pos;
         float u_x = (   cells[1].cells[pos]
                       + cells[5].cells[pos]
                       + cells[8].cells[pos]
