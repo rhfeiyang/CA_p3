@@ -46,16 +46,12 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
       if (!obstacles[pos]){
         /* compute local density total */
         float local_density = 0.f;
-        /*
+        
         for (int kk = 0; kk < NSPEEDS; kk++)
         {
           local_density += cells[pos].speeds[kk];
         }
-        */
-        local_density = local_density+cells[pos].speeds[0]+cells[pos].speeds[1]+
-        cells[pos].speeds[2]+cells[pos].speeds[3]
-        +cells[pos].speeds[4]+cells[pos].speeds[5]
-        +cells[pos].speeds[6]+cells[pos].speeds[7]+cells[pos].speeds[8];
+        
 
         /* compute x velocity component */
         float u_x = (cells[pos].speeds[1]
@@ -127,9 +123,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         const float u_sq_2_c_sq=u_sq/two_c_sq;
         const float two_csq_csq=two_c_sq*c_sq;
         
-        float d_equ_0 = w0 * local_density * (1.f + u[0] / c_sq
-                                         + (u[0] * u[0]) / two_csq_csq
-                                         - u_sq_2_c_sq);
+        float d_equ_0 = w0 * local_density * (1.f - u_sq_2_c_sq);
         __m256 two_csq_csq_vec=_mm256_set1_ps(two_csq_csq);
         __m256 u_sq_2_c_sq_vec=_mm256_set1_ps(u_sq_2_c_sq);
 
