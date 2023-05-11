@@ -38,20 +38,19 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
   ** the streaming step and so values of interest
   ** are in the scratch-space grid */
   #pragma omp parallel for schedule(static) collapse(2)
-  for (int jj = 0; jj < params.ny; ++jj)
+  for (int jj = 0; jj < params.ny; jj++)
   {
-    for (int ii = 0; ii < params.nx; ++ii)
+    for (int ii = 0; ii < params.nx; ii++)
     {
       const int pos = ii + jj*params.nx;
       if (!obstacles[pos]){
         /* compute local density total */
         float local_density = 0.f;
-        
-        for (int kk = 0; kk < NSPEEDS; ++kk)
+
+        for (int kk = 0; kk < NSPEEDS; kk++)
         {
           local_density += cells[pos].speeds[kk];
         }
-        
 
         /* compute x velocity component */
         float u_x = (cells[pos].speeds[1]
@@ -123,7 +122,9 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         const float u_sq_2_c_sq=u_sq/two_c_sq;
         const float two_csq_csq=two_c_sq*c_sq;
         
-        float d_equ_0 = w0 * local_density * (1.f - u_sq_2_c_sq);
+        float d_equ_0 = w0 * local_density * (1.f + u[0] / c_sq
+                                         + (u[0] * u[0]) / two_csq_csq
+                                         - u_sq_2_c_sq);
         __m256 two_csq_csq_vec=_mm256_set1_ps(two_csq_csq);
         __m256 u_sq_2_c_sq_vec=_mm256_set1_ps(u_sq_2_c_sq);
 
@@ -166,9 +167,9 @@ int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obst
 
     /* loop over the cells in the grid */
 #pragma omp parallel for schedule(static) collapse(2)
-    for (int jj = 0; jj < params.ny; ++jj)
+    for (int jj = 0; jj < params.ny; jj++)
     {
-        for (int ii = 0; ii < params.nx; ++ii)
+        for (int ii = 0; ii < params.nx; ii++)
         {
             int pos= ii + jj*params.nx;
             /* if the cell contains an obstacle */
@@ -198,9 +199,9 @@ int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obst
 int streaming(const t_param params, t_speed* cells, t_speed* tmp_cells) {
     /* loop over _all_ cells */
 #pragma omp parallel for schedule(static) collapse(2)
-    for (int jj = 0; jj < params.ny; ++jj)
+    for (int jj = 0; jj < params.ny; jj++)
     {
-        for (int ii = 0; ii < params.nx; ++ii)
+        for (int ii = 0; ii < params.nx; ii++)
         {
             int pos= ii + jj*params.nx;
             int jx = jj * params.nx;
@@ -249,7 +250,7 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
     // top wall (bounce)
     jj = params.ny -1;
 #pragma omp parallel for schedule(static)
-    for(ii = 0; ii < params.nx; ++ii){
+    for(ii = 0; ii < params.nx; ii++){
         int pos= ii + jj*params.nx;
         cells[pos].speeds[4] = tmp_cells[pos].speeds[2];
         cells[pos].speeds[7] = tmp_cells[pos].speeds[5];
@@ -259,7 +260,7 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
     // bottom wall (bounce)
     /*jj = 0;*/
 #pragma omp parallel for schedule(static)
-    for(ii = 0; ii < params.nx; ++ii){
+    for(ii = 0; ii < params.nx; ii++){
         cells[ii].speeds[2] = tmp_cells[ii].speeds[4];
         cells[ii].speeds[5] = tmp_cells[ii].speeds[7];
         cells[ii].speeds[6] = tmp_cells[ii].speeds[8];
@@ -268,7 +269,7 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
     // left wall (inlet)
     /*ii = 0;*/
 #pragma omp parallel for schedule(static)
-    for(jj = 0; jj < params.ny; ++jj){
+    for(jj = 0; jj < params.ny; jj++){
         int pos= jj*params.nx;
         local_density = ( cells[pos].speeds[0]
                           + cells[pos].speeds[2]
@@ -294,7 +295,7 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
     // right wall (outlet)
     ii = params.nx-1;
 #pragma omp parallel for schedule(static) 
-    for(jj = 0; jj < params.ny; ++jj){
+    for(jj = 0; jj < params.ny; jj++){
         /*simd*/
         /*for (int kk = 0; kk < NSPEEDS; kk++)
         {
