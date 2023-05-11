@@ -147,12 +147,21 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
                     u_sq_2_c_sq_vec)));
         
         /* relaxation step */
-        for (int kk = 0; kk < NSPEEDS; kk++)
+        /*for (int kk = 0; kk < NSPEEDS; kk++)
         {
-          tmp_cells[pos].speeds[kk] = cells[pos].speeds[kk]
-                                                  + params.omega
-                                                  * (d_equ[kk] - cells[pos].speeds[kk]);
-        }
+          tmp_cells[pos].speeds[kk] = cells[pos].speeds[kk]+ params.omega * (d_equ[kk] - cells[pos].speeds[kk]);
+        }*/
+        /*loop unroll*/
+        tmp_cells[pos].speeds[0] = cells[pos].speeds[0]+ params.omega * (d_equ[0] - cells[pos].speeds[0]);
+        tmp_cells[pos].speeds[1] = cells[pos].speeds[1]+ params.omega * (d_equ[1] - cells[pos].speeds[1]);
+        tmp_cells[pos].speeds[2] = cells[pos].speeds[2]+ params.omega * (d_equ[2] - cells[pos].speeds[2]);
+        tmp_cells[pos].speeds[3] = cells[pos].speeds[3]+ params.omega * (d_equ[3] - cells[pos].speeds[3]);
+        tmp_cells[pos].speeds[4] = cells[pos].speeds[4]+ params.omega * (d_equ[4] - cells[pos].speeds[4]);
+        tmp_cells[pos].speeds[5] = cells[pos].speeds[5]+ params.omega * (d_equ[5] - cells[pos].speeds[5]);
+        tmp_cells[pos].speeds[6] = cells[pos].speeds[6]+ params.omega * (d_equ[6] - cells[pos].speeds[6]);
+        tmp_cells[pos].speeds[7] = cells[pos].speeds[7]+ params.omega * (d_equ[7] - cells[pos].speeds[7]);
+        tmp_cells[pos].speeds[8] = cells[pos].speeds[8]+ params.omega * (d_equ[8] - cells[pos].speeds[8]);
+        
       }
     }
   }
