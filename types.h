@@ -13,8 +13,8 @@
 
 typedef struct
 {
-  int    ny;            /* no. of cells in x-direction */
-  int    nx;            /* no. of cells in y-direction */
+  int    ny;            /* no. of cells in y-direction */
+  int    nx;            /* no. of cells in x-direction */
   float  omega;         /* relaxation parameter */
   int    maxIters;      /* no. of iterations */
   float  density;       /* density per cell */
