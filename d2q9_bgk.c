@@ -1,6 +1,5 @@
 #include "d2q9_bgk.h"
 #include <immintrin.h>
-#include <emmintrin.h>
 #include <omp.h>
 
 /*zxx test-5.8*/
