@@ -74,6 +74,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         float u_sq = u_x * u_x + u_y * u_y;
 
         /* directional velocity components */
+        
         float u[NSPEEDS];
         u[0] = 0;            /* zero */
         u[1] =   u_x;        /* east */
@@ -84,6 +85,10 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         u[6] = - u_x + u_y;  /* north-west */
         u[7] = - u_x - u_y;  /* south-west */
         u[8] =   u_x - u_y;  /* south-east */
+        /*TODO: Do above using simd*/
+
+        
+
 
         /* equilibrium densities */
         float d_equ[NSPEEDS];
@@ -93,7 +98,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
                                          + (u[0] * u[0]) / (2.f * c_sq * c_sq)
                                          - u_sq / (2.f * c_sq));
         /* axis speeds: weight w1 */
-        d_equ[1] = w1 * local_density * (1.f + u[1] / c_sq
+        /* d_equ[1] = w1 * local_density * (1.f + u[1] / c_sq
                                          + (u[1] * u[1]) / (2.f * c_sq * c_sq)
                                          - u_sq / (2.f * c_sq));
         d_equ[2] = w1 * local_density * (1.f + u[2] / c_sq
@@ -104,9 +109,9 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
                                          - u_sq / (2.f * c_sq));
         d_equ[4] = w1 * local_density * (1.f + u[4] / c_sq
                                          + (u[4] * u[4]) / (2.f * c_sq * c_sq)
-                                         - u_sq / (2.f * c_sq));
+                                         - u_sq / (2.f * c_sq)); */
         /* diagonal speeds: weight w2 */
-        d_equ[5] = w2 * local_density * (1.f + u[5] / c_sq
+        /* d_equ[5] = w2 * local_density * (1.f + u[5] / c_sq
                                          + (u[5] * u[5]) / (2.f * c_sq * c_sq)
                                          - u_sq / (2.f * c_sq));
         d_equ[6] = w2 * local_density * (1.f + u[6] / c_sq
@@ -117,7 +122,27 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
                                          - u_sq / (2.f * c_sq));
         d_equ[8] = w2 * local_density * (1.f + u[8] / c_sq
                                          + (u[8] * u[8]) / (2.f * c_sq * c_sq)
-                                         - u_sq / (2.f * c_sq));
+                                         - u_sq / (2.f * c_sq)); */
+        /* use simd */
+        __m128 w1_vec = _mm_set_ps1(w1);
+        __m128 w2_vec = _mm_set_ps1(w2);
+        __m256 w=_mm256_insertf128_ps(_mm256_castps128_ps256(w1_vec),w2_vec,1);
+        __m256 local_density_vec = _mm256_set1_ps(local_density);
+        __m256 one= _mm256_set1_ps(1.f);
+        __m256 two= _mm256_set1_ps(2.f);
+        __m256 u_1_8= _mm256_load_ps(&u[1]);
+        __m256 u_sq_vec= _mm256_set1_ps(u_sq);
+        __m256 c_sq_vec= _mm256_set1_ps(c_sq);
+        __m256 two_c_sq=_mm256_mul_ps(two,c_sq_vec);
+        _mm256_store_ps(d_equ+1,
+            _mm256_mul_ps(
+            _mm256_mul_ps(w,local_density_vec),
+            _mm256_sub_ps(
+                _mm256_add_ps(
+                    _mm256_add_ps(one, _mm256_div_ps(u_1_8,c_sq_vec)),
+                    _mm256_div_ps(_mm256_mul_ps(u_1_8,u_1_8),_mm256_mul_ps(two_c_sq,c_sq_vec))),
+                _mm256_div_ps(u_sq_vec,two_c_sq))));
+        
         /* relaxation step */
         for (int kk = 0; kk < NSPEEDS; kk++)
         {
@@ -142,7 +167,7 @@ int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obst
         {
             int pos= ii + jj*params.nx;
             /* if the cell contains an obstacle */
-            if (obstacles[jj*params.nx + ii])
+            if (obstacles[pos])
             {
                 /* called after collision, so taking values from scratch space
                 ** mirroring, and writing into main grid */
@@ -272,4 +297,5 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
 
     return EXIT_SUCCESS;
 }
+
 
