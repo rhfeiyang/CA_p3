@@ -13,14 +13,14 @@
 
 typedef struct
 {
-  int    nx;            /* no. of cells in x-direction */
-  int    ny;            /* no. of cells in y-direction */
-  int    type;          /* inlet type */
-  int    maxIters;      /* no. of iterations */
+  int    ny;            /* no. of cells in x-direction */
+  int    nx;            /* no. of cells in y-direction */
   float  omega;         /* relaxation parameter */
+  int    maxIters;      /* no. of iterations */
   float  density;       /* density per cell */
   float  viscosity;     /* kinematic viscosity of fluid */
   float  velocity;      /* inlet velocity */
+  int    type;          /* inlet type */
   
 } t_param;
 
