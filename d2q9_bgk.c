@@ -196,9 +196,9 @@ int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obst
 int streaming(const t_param params, t_speed* cells, t_speed* tmp_cells) {
     /* loop over _all_ cells */
 #pragma omp parallel for schedule(static) collapse(2)
-    for (int ii = 0; ii < params.nx; ii++)
+    for (int jj = 0; jj < params.ny; jj++)
     {
-        for (int jj = 0; jj < params.ny; jj++)
+        for (int ii = 0; ii < params.nx; ii++)
         {
             int pos= ii + jj*params.nx;
             /* determine indices of axis-direction neighbours
