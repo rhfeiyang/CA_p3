@@ -299,23 +299,14 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
 
     // right wall (outlet)
     ii = params.nx-1;
-#pragma omp parallel for schedule(static) 
+#pragma omp parallel for schedule(static) collapse(2)
     for(jj = 0; jj < params.ny; jj++){
         const int row=jj*params.nx;
-        /*for (int kk = 0; kk < NSPEEDS; kk++)
+        for (int kk = 0; kk < NSPEEDS; kk++)
         {
             
             cells[ii + row].speeds[kk] = cells[ii-1 + row].speeds[kk];
-        }*/
-        cells[ii + row].speeds[0] = cells[ii-1 + row].speeds[0];
-        cells[ii + row].speeds[1] = cells[ii-1 + row].speeds[1];
-        cells[ii + row].speeds[2] = cells[ii-1 + row].speeds[2];
-        cells[ii + row].speeds[3] = cells[ii-1 + row].speeds[3];
-        cells[ii + row].speeds[4] = cells[ii-1 + row].speeds[4];
-        cells[ii + row].speeds[5] = cells[ii-1 + row].speeds[5];
-        cells[ii + row].speeds[6] = cells[ii-1 + row].speeds[6];
-        cells[ii + row].speeds[7] = cells[ii-1 + row].speeds[7];
-        cells[ii + row].speeds[8] = cells[ii-1 + row].speeds[8];
+        }
 
     }
 
