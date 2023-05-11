@@ -26,8 +26,10 @@ int main(int argc, char* argv[])
   char*    obstaclefile = NULL; /* name of a the input obstacle file */
   char*    out_dir = NULL;      /* name of output directory */
   t_param  params;              /* struct to hold parameter values */
-  t_speed* cells     = NULL;    /* grid containing fluid densities */
-  t_speed* tmp_cells = NULL;    /* scratch space */
+  /*t_speed* cells     = NULL;*/    /* grid containing fluid densities */
+  /*t_speed* tmp_cells = NULL;*/    /* scratch space */
+  t_speed_t cells[NSPEEDS];
+  t_speed_t tmp_cells[NSPEEDS];
   int*     obstacles = NULL;    /* grid indicating which cells are blocked */
   float*   inlets    = NULL;    /* inlet velocity */  
   struct timeval timstr;                   /* structure to hold elapsed time */
@@ -60,7 +62,7 @@ int main(int argc, char* argv[])
   total_time = timstr.tv_sec + (timstr.tv_usec / 1000000.0);
   init_time = total_time;
   /* initialise our data structures and load values from file */
-  initialise(paramfile, obstaclefile, &params, &cells, &tmp_cells, &obstacles, &inlets);
+  initialise(paramfile, obstaclefile, &params, cells, tmp_cells, &obstacles, &inlets);
   /* Set the inlet speed */
   set_inlets(params, inlets);
   /* Init time stops here */
@@ -98,7 +100,7 @@ int main(int argc, char* argv[])
   /* Compute time stops here */
   gettimeofday(&timstr, NULL);
   comp_time = timstr.tv_sec + (timstr.tv_usec / 1000000.0) - comp_time;
-  
+
   /* write final state and free memory */
   sprintf(buf, "%s/final_state.dat", out_dir);
   write_state(buf, params, cells, obstacles);
@@ -111,7 +113,7 @@ int main(int argc, char* argv[])
   printf("Elapsed Compute time:\t\t\t%.6lf (s)\n", comp_time);
 
   /* finalise */
-  finalise(&params, &cells, &tmp_cells, &obstacles, &inlets);
+  finalise(&params, cells, tmp_cells, &obstacles, &inlets);
 
   /* total time stop */
   gettimeofday(&timstr, NULL);

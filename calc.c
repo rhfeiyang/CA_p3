@@ -12,7 +12,7 @@ int set_inlets(const t_param params, float* inlets) {
 }
 
 /* compute average velocity of whole grid, ignore grids with obstacles. */
-float av_velocity(const t_param params, t_speed* cells, int* obstacles)
+float av_velocity(const t_param params, t_speed_t* cells, int* obstacles)
 {
   int    tot_cells = 0;  /* no. of cells used in calculation */
   float  tot_u;          /* accumulated magnitudes of velocity for each cell */
@@ -25,33 +25,36 @@ float av_velocity(const t_param params, t_speed* cells, int* obstacles)
   {
     for (int ii = 0; ii < params.nx; ii++)
     {
+      int pos = ii + jj*params.nx;
       /* ignore occupied cells */
-      if (!obstacles[ii + jj*params.nx])
+      if (!obstacles[pos])
       {
         /* local density total */
         float local_density = 0.f;
 
         for (int kk = 0; kk < NSPEEDS; kk++)
         {
-          local_density += cells[ii + jj*params.nx].speeds[kk];
+          local_density += cells[kk].cells[pos];
         }
 
         /* x-component of velocity */
-        float u_x = (cells[ii + jj*params.nx].speeds[1]
-                      + cells[ii + jj*params.nx].speeds[5]
-                      + cells[ii + jj*params.nx].speeds[8]
-                      - (cells[ii + jj*params.nx].speeds[3]
-                         + cells[ii + jj*params.nx].speeds[6]
-                         + cells[ii + jj*params.nx].speeds[7]))
+        int pos = pos;
+        float u_x = (   cells[1].cells[pos]
+                      + cells[5].cells[pos]
+                      + cells[8].cells[pos]
+                      - (  cells[3].cells[pos]
+                         + cells[6].cells[pos]
+                         + cells[7].cells[pos]))
                      / local_density;
         /* compute y velocity component */
-        float u_y = (cells[ii + jj*params.nx].speeds[2]
-                      + cells[ii + jj*params.nx].speeds[5]
-                      + cells[ii + jj*params.nx].speeds[6]
-                      - (cells[ii + jj*params.nx].speeds[4]
-                         + cells[ii + jj*params.nx].speeds[7]
-                         + cells[ii + jj*params.nx].speeds[8]))
+        float u_y = (      cells[2].cells[pos]
+                         + cells[5].cells[pos]
+                         + cells[6].cells[pos]
+                         -(cells[4].cells[pos]
+                         + cells[7].cells[pos]
+                         + cells[8].cells[pos]))
                      / local_density;
+
         /* accumulate the norm of x- and y- velocity components */
         tot_u += sqrtf((u_x * u_x) + (u_y * u_y));
         /* increase counter of inspected cells */
@@ -64,7 +67,7 @@ float av_velocity(const t_param params, t_speed* cells, int* obstacles)
 }
 
 /* calculate reynold number */
-float calc_reynolds(const t_param params, t_speed* cells, int* obstacles)
+float calc_reynolds(const t_param params, t_speed_t* cells, int* obstacles)
 {
   return av_velocity(params, cells, obstacles) * (float)(params.ny) / params.viscosity;
 }

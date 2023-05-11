@@ -6,11 +6,11 @@
 #include <math.h>
 #include <time.h>
 #include <sys/time.h>
-#include <sys/resource.h>
+//#include <sys/resource.h>
 
 #define NSPEEDS         9
 #define NUM_THREADS     28
-
+#define SIMDLEN        8
 typedef struct
 {
   int    ny;            /* no. of cells in y-direction */
@@ -25,9 +25,14 @@ typedef struct
 } t_param;
 
 /* struct to hold the distribution of different speeds */
-typedef struct
+/*typedef struct
 {
   float speeds[NSPEEDS];
-} t_speed;
+} t_speed;*/
+
+typedef struct
+{
+    float *cells;
+} t_speed_t;
 
 #endif
