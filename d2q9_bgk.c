@@ -207,24 +207,28 @@ int streaming(const t_param params, t_speed* cells, t_speed* tmp_cells) {
         for (int ii = 0; ii < params.nx; ii++)
         {
             int pos= ii + jj*params.nx;
+            int jx = jj * params.nx;
+            
             /* determine indices of axis-direction neighbours
             ** respecting periodic boundary conditions (wrap around) */
             int y_n = (jj + 1) % params.ny;
             int x_e = (ii + 1) % params.nx;
             int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
             int x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
+            int ynx = y_n * params.nx;
+            int ysx = y_s * params.nx;
             /* propagate densities from neighbouring cells, following
             ** appropriate directions of travel and writing into
             ** scratch space grid */
-            cells[ii  + jj *params.nx].speeds[0] = tmp_cells[pos].speeds[0]; /* central cell, no movement */
-            cells[x_e + jj *params.nx].speeds[1] = tmp_cells[pos].speeds[1]; /* east */
-            cells[ii  + y_n*params.nx].speeds[2] = tmp_cells[pos].speeds[2]; /* north */
-            cells[x_w + jj *params.nx].speeds[3] = tmp_cells[pos].speeds[3]; /* west */
-            cells[ii  + y_s*params.nx].speeds[4] = tmp_cells[pos].speeds[4]; /* south */
-            cells[x_e + y_n*params.nx].speeds[5] = tmp_cells[pos].speeds[5]; /* north-east */
-            cells[x_w + y_n*params.nx].speeds[6] = tmp_cells[pos].speeds[6]; /* north-west */
-            cells[x_w + y_s*params.nx].speeds[7] = tmp_cells[pos].speeds[7]; /* south-west */
-            cells[x_e + y_s*params.nx].speeds[8] = tmp_cells[pos].speeds[8]; /* south-east */
+            cells[ii  + jx].speeds[0] = tmp_cells[pos].speeds[0]; /* central cell, no movement */
+            cells[x_e + jx].speeds[1] = tmp_cells[pos].speeds[1]; /* east */
+            cells[ii  + ynx].speeds[2] = tmp_cells[pos].speeds[2]; /* north */
+            cells[x_w + jx].speeds[3] = tmp_cells[pos].speeds[3]; /* west */
+            cells[ii  + ysx].speeds[4] = tmp_cells[pos].speeds[4]; /* south */
+            cells[x_e + ynx].speeds[5] = tmp_cells[pos].speeds[5]; /* north-east */
+            cells[x_w + ynx].speeds[6] = tmp_cells[pos].speeds[6]; /* north-west */
+            cells[x_w + ysx].speeds[7] = tmp_cells[pos].speeds[7]; /* south-west */
+            cells[x_e + ysx].speeds[8] = tmp_cells[pos].speeds[8]; /* south-east */
         }
     }
 
@@ -257,26 +261,23 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
     }
 
     // bottom wall (bounce)
-    jj = 0;
+    /*jj = 0;*/
 #pragma omp parallel for schedule(static)
     for(ii = 0; ii < params.nx; ii++){
-        int pos= ii + jj*params.nx;
-        cells[pos].speeds[2] = tmp_cells[pos].speeds[4];
-        cells[pos].speeds[5] = tmp_cells[pos].speeds[7];
-        cells[pos].speeds[6] = tmp_cells[pos].speeds[8];
+        cells[ii].speeds[2] = tmp_cells[ii].speeds[4];
+        cells[ii].speeds[5] = tmp_cells[ii].speeds[7];
+        cells[ii].speeds[6] = tmp_cells[ii].speeds[8];
     }
 
     // left wall (inlet)
-    ii = 0;
+    /*ii = 0;*/
 #pragma omp parallel for schedule(static)
     for(jj = 0; jj < params.ny; jj++){
-        int pos= ii + jj*params.nx;
+        int pos= jj*params.nx;
         local_density = ( cells[pos].speeds[0]
                           + cells[pos].speeds[2]
                           + cells[pos].speeds[4]
-                          + 2.0 * cells[pos].speeds[3]
-                          + 2.0 * cells[pos].speeds[6]
-                          + 2.0 * cells[pos].speeds[7]
+                          + 2.0 * (cells[pos].speeds[3]+cells[pos].speeds[6]+cells[pos].speeds[7])
                         )/(1.0 - inlets[jj]);
         float local_inlet = local_density*inlets[jj];
         float index_cell = cells[pos].speeds[2]-cells[pos].speeds[4];
