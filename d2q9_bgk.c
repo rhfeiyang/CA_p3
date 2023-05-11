@@ -43,7 +43,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
   {
     for (int ii = 0; ii < params.nx; ii++)
     {
-      int pos = ii + jj*params.nx;
+      const int pos = ii + jj*params.nx;
       if (!obstacles[pos]){
         /* compute local density total */
         float local_density = 0.f;
@@ -151,17 +151,14 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         {
           tmp_cells[pos].speeds[kk] = cells[pos].speeds[kk]+ params.omega * (d_equ[kk] - cells[pos].speeds[kk]);
         }*/
-        /*loop unroll*/
+
+        /* simd */
+        /* printf("%f\n",cells[pos].speeds[1]); */
         tmp_cells[pos].speeds[0] = cells[pos].speeds[0]+ params.omega * (d_equ[0] - cells[pos].speeds[0]);
-        tmp_cells[pos].speeds[1] = cells[pos].speeds[1]+ params.omega * (d_equ[1] - cells[pos].speeds[1]);
-        tmp_cells[pos].speeds[2] = cells[pos].speeds[2]+ params.omega * (d_equ[2] - cells[pos].speeds[2]);
-        tmp_cells[pos].speeds[3] = cells[pos].speeds[3]+ params.omega * (d_equ[3] - cells[pos].speeds[3]);
-        tmp_cells[pos].speeds[4] = cells[pos].speeds[4]+ params.omega * (d_equ[4] - cells[pos].speeds[4]);
-        tmp_cells[pos].speeds[5] = cells[pos].speeds[5]+ params.omega * (d_equ[5] - cells[pos].speeds[5]);
-        tmp_cells[pos].speeds[6] = cells[pos].speeds[6]+ params.omega * (d_equ[6] - cells[pos].speeds[6]);
-        tmp_cells[pos].speeds[7] = cells[pos].speeds[7]+ params.omega * (d_equ[7] - cells[pos].speeds[7]);
-        tmp_cells[pos].speeds[8] = cells[pos].speeds[8]+ params.omega * (d_equ[8] - cells[pos].speeds[8]);
-        
+        __m256 omega_vec=_mm256_set1_ps(params.omega);
+        __m256 d_egu_vec=_mm256_load_ps(d_equ+1);
+        __m256 cells_1_8_vec=_mm256_loadu_ps(cells[pos].speeds+1);
+        _mm256_storeu_ps(tmp_cells[pos].speeds+1,_mm256_add_ps(cells_1_8_vec,_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_egu_vec,cells_1_8_vec))));
       }
     }
   }
@@ -308,7 +305,6 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
         }
 
     }
-
     return EXIT_SUCCESS;
 }
 
