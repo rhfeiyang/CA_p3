@@ -39,9 +39,10 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
   ** the streaming step and so values of interest
   ** are in the scratch-space grid */
   #pragma omp parallel for schedule(static) collapse(2)
-  for (int ii = 0; ii < params.nx; ii++)
+  for (int jj = 0; jj < params.ny; jj++)
   {
-    for (int jj = 0; jj < params.ny; jj++)
+
+    for (int ii = 0; ii < params.nx; ii++)
     {
       int pos = ii + jj*params.nx;
       if (!obstacles[pos]){
@@ -86,9 +87,6 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         u[7] = - u_x - u_y;  /* south-west */
         u[8] =   u_x - u_y;  /* south-east */
         /*TODO: Do above using simd*/
-
-        
-
 
         /* equilibrium densities */
         float d_equ[NSPEEDS];
