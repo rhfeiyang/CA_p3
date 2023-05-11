@@ -146,9 +146,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         /* relaxation step */
         for (int kk = 0; kk < NSPEEDS; kk++)
         {
-          tmp_cells[pos].speeds[kk] = cells[pos].speeds[kk]
-                                                  + params.omega
-                                                  * (d_equ[kk] - cells[pos].speeds[kk]);
+          tmp_cells[pos].speeds[kk] = (1-params.omega)*cells[pos].speeds[kk]+ params.omega * d_equ[kk];
         }
       }
     }
@@ -269,17 +267,19 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
                           + 2.0 * cells[pos].speeds[6]
                           + 2.0 * cells[pos].speeds[7]
                         )/(1.0 - inlets[jj]);
+        float local_inlet = local_density*inlets[jj];
+        float index_cell = cells[pos].speeds[2]-cells[pos].speeds[4];
 
         cells[pos].speeds[1] = cells[pos].speeds[3]
-                                             + cst1*local_density*inlets[jj];
+                                             + cst1*local_inlet;
 
         cells[pos].speeds[5] = cells[pos].speeds[7]
-                                             - cst3*(cells[pos].speeds[2]-cells[pos].speeds[4])
-                                             + cst2*local_density*inlets[jj];
+                                             - cst3*(index_cell)
+                                             + cst2*local_inlet;
 
         cells[pos].speeds[8] = cells[pos].speeds[6]
-                                             + cst3*(cells[pos].speeds[2]-cells[pos].speeds[4])
-                                             + cst2*local_density*inlets[jj];
+                                             + cst3*(index_cell)
+                                             + cst2*local_inlet;
 
     }
 
