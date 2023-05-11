@@ -1,8 +1,7 @@
 #include "calc.h"
-/*omp*/
+
 /* set inlets velocity there are two type inlets*/
 int set_inlets(const t_param params, float* inlets) {
-  #pragma omp parallel for schedule(static)
   for(int jj=0; jj <params.ny; jj++){
     if(!params.type)
       inlets[jj]=params.velocity; // homogeneous
@@ -13,7 +12,7 @@ int set_inlets(const t_param params, float* inlets) {
 }
 
 /* compute average velocity of whole grid, ignore grids with obstacles. */
-float av_velocity(const t_param params, t_speed* cells, int* obstacles)
+float av_velocity(const t_param params, t_speed_t* cells, int* obstacles)
 {
   int    tot_cells = 0;  /* no. of cells used in calculation */
   float  tot_u;          /* accumulated magnitudes of velocity for each cell */
@@ -22,39 +21,39 @@ float av_velocity(const t_param params, t_speed* cells, int* obstacles)
   tot_u = 0.f;
 
   /* loop over all non-blocked cells */
-  #pragma omp parallel for schedule(static) collapse(2)
   for (int jj = 0; jj < params.ny; jj++)
   {
     for (int ii = 0; ii < params.nx; ii++)
     {
+      int pos = ii + jj*params.nx;
       /* ignore occupied cells */
-      if (!obstacles[ii + jj*params.nx])
+      if (!obstacles[pos])
       {
-        int pos = ii + jj * params.nx;
         /* local density total */
         float local_density = 0.f;
 
         for (int kk = 0; kk < NSPEEDS; kk++)
         {
-          local_density += cells[pos].speeds[kk];
+          local_density += cells[kk].cells[pos];
         }
 
         /* x-component of velocity */
-        float u_x = (cells[pos].speeds[1]
-                      + cells[pos].speeds[5]
-                      + cells[pos].speeds[8]
-                      - (cells[pos].speeds[3]
-                         + cells[pos].speeds[6]
-                         + cells[pos].speeds[7]))
+        float u_x = (   cells[1].cells[pos]
+                      + cells[5].cells[pos]
+                      + cells[8].cells[pos]
+                      - (  cells[3].cells[pos]
+                         + cells[6].cells[pos]
+                         + cells[7].cells[pos]))
                      / local_density;
         /* compute y velocity component */
-        float u_y = (cells[pos].speeds[2]
-                      + cells[pos].speeds[5]
-                      + cells[pos].speeds[6]
-                      - (cells[pos].speeds[4]
-                         + cells[pos].speeds[7]
-                         + cells[pos].speeds[8]))
+        float u_y = (      cells[2].cells[pos]
+                         + cells[5].cells[pos]
+                         + cells[6].cells[pos]
+                         -(cells[4].cells[pos]
+                         + cells[7].cells[pos]
+                         + cells[8].cells[pos]))
                      / local_density;
+
         /* accumulate the norm of x- and y- velocity components */
         tot_u += sqrtf((u_x * u_x) + (u_y * u_y));
         /* increase counter of inspected cells */
@@ -67,7 +66,7 @@ float av_velocity(const t_param params, t_speed* cells, int* obstacles)
 }
 
 /* calculate reynold number */
-float calc_reynolds(const t_param params, t_speed* cells, int* obstacles)
+float calc_reynolds(const t_param params, t_speed_t* cells, int* obstacles)
 {
   return av_velocity(params, cells, obstacles) * (float)(params.ny) / params.viscosity;
 }
