@@ -196,7 +196,6 @@ int write_state(char* filename, const t_param params, t_speed* cells, int* obsta
   }
 
   /* loop on grid to calculate the velocity of each cell */
-  #pragma omp parallel for schedule(static) collapse(2)
   for (int jj = 0; jj < params.ny; jj++)
   {
     for (int ii = 0; ii < params.nx; ii++)
