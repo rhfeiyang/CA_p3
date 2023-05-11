@@ -38,7 +38,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
   ** the collision step is called before
   ** the streaming step and so values of interest
   ** are in the scratch-space grid */
-  #pragma omp parallel for schedule(static) collapse(2)
+  #pragma omp parallel for schedule(static)
   for (int ii = 0; ii < params.nx; ii++)
   {
     for (int jj = 0; jj < params.ny; jj++)
