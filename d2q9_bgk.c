@@ -88,7 +88,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         /*TODO: Do above using simd*/
 
         /* equilibrium densities */
-        float d_equ[NSPEEDS];
+        /* float d_equ[NSPEEDS]; */
         /* zero velocity density: weight w0 */
 
         
@@ -123,7 +123,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         const float u_sq_2_c_sq=u_sq/two_c_sq;
         const float two_csq_csq=two_c_sq*c_sq;
         
-        d_equ[0] = w0 * local_density * (1.f + u[0] / c_sq
+        float d_equ_0 = w0 * local_density * (1.f + u[0] / c_sq
                                          + (u[0] * u[0]) / two_csq_csq
                                          - u_sq_2_c_sq);
         __m256 two_csq_csq_vec=_mm256_set1_ps(two_csq_csq);
@@ -136,29 +136,27 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         __m256 one= _mm256_set1_ps(1.f);
         __m256 u_1_8= _mm256_load_ps(&u[1]);
         __m256 c_sq_vec= _mm256_set1_ps(c_sq);
-        
-        _mm256_store_ps(d_equ+1,
-            _mm256_mul_ps(
+
+        __m256 d_egu_vec = _mm256_mul_ps(
                 _mm256_mul_ps(w,local_density_vec),
                 _mm256_sub_ps(
-                    _mm256_add_ps(
-                        _mm256_add_ps(one, _mm256_div_ps(u_1_8,c_sq_vec)),
-                        _mm256_div_ps(_mm256_mul_ps(u_1_8,u_1_8), two_csq_csq_vec)),
-                    u_sq_2_c_sq_vec)));
-        
+                        _mm256_add_ps(
+                                _mm256_add_ps(one, _mm256_div_ps(u_1_8,c_sq_vec)),
+                                _mm256_div_ps(_mm256_mul_ps(u_1_8,u_1_8), two_csq_csq_vec)),
+                        u_sq_2_c_sq_vec));
+
+        /* simd */
+        /* printf("%f\n",cells[pos].speeds[1]); */
+        tmp_cells[pos].speeds[0] = cells[pos].speeds[0]+ params.omega * (d_equ_0 - cells[pos].speeds[0]);
+        __m256 omega_vec=_mm256_set1_ps(params.omega);
+
+        __m256 cells_1_8_vec=_mm256_loadu_ps(cells[pos].speeds+1);
+        _mm256_storeu_ps(tmp_cells[pos].speeds+1,_mm256_add_ps(cells_1_8_vec,_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_egu_vec,cells_1_8_vec))));
         /* relaxation step */
         /*for (int kk = 0; kk < NSPEEDS; kk++)
         {
           tmp_cells[pos].speeds[kk] = cells[pos].speeds[kk]+ params.omega * (d_equ[kk] - cells[pos].speeds[kk]);
         }*/
-
-        /* simd */
-        /* printf("%f\n",cells[pos].speeds[1]); */
-        tmp_cells[pos].speeds[0] = cells[pos].speeds[0]+ params.omega * (d_equ[0] - cells[pos].speeds[0]);
-        __m256 omega_vec=_mm256_set1_ps(params.omega);
-        __m256 d_egu_vec=_mm256_load_ps(d_equ+1);
-        __m256 cells_1_8_vec=_mm256_loadu_ps(cells[pos].speeds+1);
-        _mm256_storeu_ps(tmp_cells[pos].speeds+1,_mm256_add_ps(cells_1_8_vec,_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_egu_vec,cells_1_8_vec))));
       }
     }
   }
@@ -313,5 +311,6 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
     }
     return EXIT_SUCCESS;
 }
+
 
 
