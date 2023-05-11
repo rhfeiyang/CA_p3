@@ -94,9 +94,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         float d_equ[NSPEEDS];
         /* zero velocity density: weight w0 */
 
-        d_equ[0] = w0 * local_density * (1.f + u[0] / c_sq
-                                         + (u[0] * u[0]) / (2.f * c_sq * c_sq)
-                                         - u_sq / (2.f * c_sq));
+        
         /* axis speeds: weight w1 */
         /* d_equ[1] = w1 * local_density * (1.f + u[1] / c_sq
                                          + (u[1] * u[1]) / (2.f * c_sq * c_sq)
@@ -124,24 +122,32 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
                                          + (u[8] * u[8]) / (2.f * c_sq * c_sq)
                                          - u_sq / (2.f * c_sq)); */
         /* use simd */
+        const float two_c_sq=2.f*c_sq;
+        const float u_sq_2_c_sq=u_sq/two_c_sq;
+        const float two_csq_csq=two_c_sq*c_sq;
+        
+        d_equ[0] = w0 * local_density * (1.f + u[0] / c_sq
+                                         + (u[0] * u[0]) / two_csq_csq
+                                         - u_sq_2_c_sq);
+        __m256 two_csq_csq_vec=_mm256_set1_ps(two_csq_csq);
+        __m256 u_sq_2_c_sq_vec=_mm256_set1_ps(u_sq_2_c_sq);
+
         __m128 w1_vec = _mm_set_ps1(w1);
         __m128 w2_vec = _mm_set_ps1(w2);
         __m256 w=_mm256_insertf128_ps(_mm256_castps128_ps256(w1_vec),w2_vec,1);
         __m256 local_density_vec = _mm256_set1_ps(local_density);
         __m256 one= _mm256_set1_ps(1.f);
-        __m256 two= _mm256_set1_ps(2.f);
         __m256 u_1_8= _mm256_load_ps(&u[1]);
-        __m256 u_sq_vec= _mm256_set1_ps(u_sq);
         __m256 c_sq_vec= _mm256_set1_ps(c_sq);
-        __m256 two_c_sq=_mm256_mul_ps(two,c_sq_vec);
+        
         _mm256_store_ps(d_equ+1,
             _mm256_mul_ps(
-            _mm256_mul_ps(w,local_density_vec),
-            _mm256_sub_ps(
-                _mm256_add_ps(
-                    _mm256_add_ps(one, _mm256_div_ps(u_1_8,c_sq_vec)),
-                    _mm256_div_ps(_mm256_mul_ps(u_1_8,u_1_8),_mm256_mul_ps(two_c_sq,c_sq_vec))),
-                _mm256_div_ps(u_sq_vec,two_c_sq))));
+                _mm256_mul_ps(w,local_density_vec),
+                _mm256_sub_ps(
+                    _mm256_add_ps(
+                        _mm256_add_ps(one, _mm256_div_ps(u_1_8,c_sq_vec)),
+                        _mm256_div_ps(_mm256_mul_ps(u_1_8,u_1_8), two_csq_csq_vec)),
+                    u_sq_2_c_sq_vec)));
         
         /* relaxation step */
         for (int kk = 0; kk < NSPEEDS; kk++)
