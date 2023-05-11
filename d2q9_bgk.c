@@ -296,13 +296,19 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
 
     // right wall (outlet)
     ii = params.nx-1;
-#pragma omp parallel for schedule(static) collapse(2)
+#pragma omp parallel for schedule(static) 
     for(jj = 0; jj < params.ny; jj++){
-        for (int kk = 0; kk < NSPEEDS; kk++)
+        /*simd*/
+        /*for (int kk = 0; kk < NSPEEDS; kk++)
         {
             const int row=jj*params.nx;
             cells[ii + row].speeds[kk] = cells[ii-1 + row].speeds[kk];
-        }
+        }*/
+        int row = jj*params.nx;
+        cells[ii + row].speeds[0] = cells[ii-1 + row].speeds[0];
+        __m256 cells_1_8_vec=_mm256_loadu_ps(cells[ii-1 + row].speeds+1);
+        _mm256_storeu_ps(cells[ii + row].speeds+1, cells_1_8_vec);
+
 
     }
     return EXIT_SUCCESS;
