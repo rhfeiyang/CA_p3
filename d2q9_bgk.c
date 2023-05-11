@@ -300,7 +300,7 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
     for(jj = 0; jj < params.ny; jj++){
         for (int kk = 0; kk < NSPEEDS; kk++)
         {
-            int row=jj*params.nx;
+            const int row=jj*params.nx;
             cells[ii + row].speeds[kk] = cells[ii-1 + row].speeds[kk];
         }
 
