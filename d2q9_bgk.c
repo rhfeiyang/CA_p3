@@ -401,10 +401,10 @@ int boundary(const t_param params, t_speed_t* cells,  t_speed_t* tmp_cells, floa
 
     // right wall (outlet)
     ii = params.nx-1;
-#pragma omp parallel for schedule(static) collapse(2)
-    for (int kk = 0; kk < NSPEEDS; kk++){
+#pragma omp parallel for schedule(static)
+  for(jj = 0; jj < params.ny; jj++){
         /*simd*/
-      for(jj = 0; jj < params.ny; jj++)
+    for (int kk = 0; kk < NSPEEDS; kk++)
         {
             const int row=jj*params.nx;
             cells[kk].cells[ii + row] = cells[kk].cells[ii-1 + row];
