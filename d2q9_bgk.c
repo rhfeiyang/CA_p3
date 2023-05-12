@@ -354,9 +354,9 @@ int streaming(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells) {
 */
 int boundary(const t_param params, t_speed_t* cells,  t_speed_t* tmp_cells, float* inlets) {
     /* Set the constant coefficient */
-    const __m256 cst1 =_mm256_set1_ps(2.0/3.0);
-    const __m256 cst2 =_mm256_set1_ps(1.0/6.0);
-    const __m256 cst3 =_mm256_set1_ps(1.0/2.0);
+    const float cst1 =2.0/3.0;
+    const float cst2 =1.0/6.0;
+    const float cst3 =1.0/2.0;
 
     int ii, jj;
 
