@@ -276,15 +276,30 @@ int obstacle(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int* 
 #pragma omp parallel for schedule(static) collapse(2)
     for (int jj = 0; jj < params.ny; jj++)
     {
-        for (int ii = 0; ii < params.nx; ii++)
+        for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
         {
             int pos= ii + jj*params.nx;
+            __m256 data[NSPEEDS]={_mm256_load_ps(&cells[0].cells[pos]),_mm256_load_ps(&cells[1].cells[pos]),_mm256_load_ps(&cells[2].cells[pos]),
+                                  _mm256_load_ps(&cells[3].cells[pos]),_mm256_load_ps(&cells[4].cells[pos]),
+                                  _mm256_load_ps(&cells[5].cells[pos]),_mm256_load_ps(&cells[6].cells[pos]),
+                                  _mm256_load_ps(&cells[7].cells[pos]),_mm256_load_ps(&cells[8].cells[pos])};
+
+            __m256i obstacle_mask=_mm256_xor_si256(_mm256_load_si256((__m256i *)&obstacles[pos]),_mm256_set1_epi32(1));
             /* if the cell contains an obstacle */
-            if (obstacles[pos])
+            if (_mm256_testz_si256(obstacle_mask,obstacle_mask))
             {
                 /* called after collision, so taking values from scratch space
                 ** mirroring, and writing into main grid */
-                tmp_cells[0].cells[pos] = cells[0].cells[pos];
+                _mm256_store_ps(&tmp_cells[0].cells[pos],data[0]);
+                _mm256_store_ps(&tmp_cells[1].cells[pos],data[3]);
+                _mm256_store_ps(&tmp_cells[2].cells[pos],data[4]);
+                _mm256_store_ps(&tmp_cells[3].cells[pos],data[1]);
+                _mm256_store_ps(&tmp_cells[4].cells[pos],data[2]);
+                _mm256_store_ps(&tmp_cells[5].cells[pos],data[7]);
+                _mm256_store_ps(&tmp_cells[6].cells[pos],data[8]);
+                _mm256_store_ps(&tmp_cells[7].cells[pos],data[5]);
+                _mm256_store_ps(&tmp_cells[8].cells[pos],data[6]);
+                /*tmp_cells[0].cells[pos] = cells[0].cells[pos];
                 tmp_cells[1].cells[pos] = cells[3].cells[pos];
                 tmp_cells[2].cells[pos] = cells[4].cells[pos];
                 tmp_cells[3].cells[pos] = cells[1].cells[pos];
@@ -292,7 +307,7 @@ int obstacle(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int* 
                 tmp_cells[5].cells[pos] = cells[7].cells[pos];
                 tmp_cells[6].cells[pos] = cells[8].cells[pos];
                 tmp_cells[7].cells[pos] = cells[5].cells[pos];
-                tmp_cells[8].cells[pos] = cells[6].cells[pos];
+                tmp_cells[8].cells[pos] = cells[6].cells[pos];*/
             }
         }
     }
@@ -308,10 +323,15 @@ int streaming(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells) {
 #pragma omp parallel for schedule(static) collapse(2)
     for (int jj = 0; jj < params.ny; jj++)
     {
-        for (int ii = 0; ii < params.nx; ii++)
+        for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
         {
-            int pos= ii + jj*params.nx;
             int jx = jj * params.nx;
+            int pos= ii + jx;
+            /*__m256 data[NSPEEDS]={_mm256_load_ps(&tmp_cells[0].cells[pos]),_mm256_load_ps(&tmp_cells[1].cells[pos]),_mm256_load_ps(&tmp_cells[2].cells[pos]),
+                                  _mm256_load_ps(&tmp_cells[3].cells[pos]),_mm256_load_ps(&tmp_cells[4].cells[pos]),
+                                  _mm256_load_ps(&tmp_cells[5].cells[pos]),_mm256_load_ps(&tmp_cells[6].cells[pos]),
+                                  _mm256_load_ps(&tmp_cells[7].cells[pos]),_mm256_load_ps(&tmp_cells[8].cells[pos])};*/
+
             
             /* determine indices of axis-direction neighbours
             ** respecting periodic boundary conditions (wrap around) */
@@ -324,7 +344,7 @@ int streaming(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells) {
             /* propagate densities from neighbouring cells, following
             ** appropriate directions of travel and writing into
             ** scratch space grid */
-            cells[0]. cells[ii  + jx ] = tmp_cells[0].cells[pos]; /* central cell, no movement */
+
             cells[1]. cells[x_e + jx ] = tmp_cells[1].cells[pos]; /* east */
             cells[2].cells [ii  + ynx] = tmp_cells[2].cells[pos]; /* north */
             cells[3]. cells[x_w + jx ] = tmp_cells[3].cells[pos]; /* west */
@@ -333,6 +353,16 @@ int streaming(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells) {
             cells[6].cells [x_w + ynx] = tmp_cells[6].cells[pos]; /* north-west */
             cells[7].cells [x_w + ysx] = tmp_cells[7].cells[pos]; /* south-west */
             cells[8].cells [x_e + ysx] = tmp_cells[8].cells[pos]; /* south-east */
+
+
+            /*_mm256_store_ps(&cells[1].cells[x_e + jx], data[1]);
+            _mm256_store_ps(&cells[2].cells[ii  + ynx],data[2]);
+            _mm256_store_ps(&cells[3].cells[x_w + jx ],data[3]);
+            _mm256_store_ps(&cells[4].cells[ii  + ysx],data[4]);
+            _mm256_store_ps(&cells[5].cells[x_e + ynx],data[5]);
+            _mm256_store_ps(&cells[6].cells[x_w + ynx],data[6]);
+            _mm256_store_ps(&cells[7].cells[x_w + ysx],data[7]);
+            _mm256_store_ps(&cells[8].cells[x_e + ysx],data[8]);*/
         }
     }
 
@@ -401,7 +431,7 @@ int boundary(const t_param params, t_speed_t* cells,  t_speed_t* tmp_cells, floa
 
     // right wall (outlet)
     ii = params.nx-1;
-#pragma omp parallel for schedule(static) 
+#pragma omp parallel for schedule(static) collapse(2)
     for(jj = 0; jj < params.ny; jj++){
         /*simd*/
         for (int kk = 0; kk < NSPEEDS; kk++)
@@ -409,6 +439,7 @@ int boundary(const t_param params, t_speed_t* cells,  t_speed_t* tmp_cells, floa
             const int row=jj*params.nx;
             cells[kk].cells[ii + row] = cells[kk].cells[ii-1 + row];
         }
+
     }
     return EXIT_SUCCESS;
 }
