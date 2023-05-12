@@ -204,7 +204,7 @@ int streaming(const t_param params, t_speed* cells, t_speed* tmp_cells) {
         for (int ii = 0; ii < params.nx; ii++)
         {
             int pos= ii + jj*params.nx;
-            int jx = jj * params.nx;
+            int jx = pos-ii;
             
             /* determine indices of axis-direction neighbours
             ** respecting periodic boundary conditions (wrap around) */
@@ -247,28 +247,31 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
     int ii, jj;
     float local_density;
 
-    // top wall (bounce)
+    // top wall (bounce) + loop fusion
     jj = params.ny -1;
-#pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(static)
     for(ii = 0; ii < params.nx; ii++){
         int pos= ii + jj*params.nx;
         cells[pos].speeds[4] = tmp_cells[pos].speeds[2];
         cells[pos].speeds[7] = tmp_cells[pos].speeds[5];
         cells[pos].speeds[8] = tmp_cells[pos].speeds[6];
-    }
-
-    // bottom wall (bounce)
-    /*jj = 0;*/
-#pragma omp parallel for schedule(static)
-    for(ii = 0; ii < params.nx; ii++){
         cells[ii].speeds[2] = tmp_cells[ii].speeds[4];
         cells[ii].speeds[5] = tmp_cells[ii].speeds[7];
         cells[ii].speeds[6] = tmp_cells[ii].speeds[8];
     }
 
+    // bottom wall (bounce)
+    /*jj = 0;*/
+    /*#pragma omp parallel for schedule(static)
+    for(ii = 0; ii < params.nx; ii++){
+        cells[ii].speeds[2] = tmp_cells[ii].speeds[4];
+        cells[ii].speeds[5] = tmp_cells[ii].speeds[7];
+        cells[ii].speeds[6] = tmp_cells[ii].speeds[8];
+    }*/
+
     // left wall (inlet)
     /*ii = 0;*/
-#pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(static)
     for(jj = 0; jj < params.ny; jj++){
         int pos= jj*params.nx;
         local_density = ( cells[pos].speeds[0]
@@ -294,20 +297,12 @@ int boundary(const t_param params, t_speed* cells,  t_speed* tmp_cells, float* i
 
     // right wall (outlet)
     ii = params.nx-1;
-#pragma omp parallel for schedule(static) 
+    #pragma omp parallel for schedule(static) 
     for(jj = 0; jj < params.ny; jj++){
-        /*simd*/
-        /*for (int kk = 0; kk < NSPEEDS; kk++)
-        {
-            const int row=jj*params.nx;
-            cells[ii + row].speeds[kk] = cells[ii-1 + row].speeds[kk];
-        }*/
         int row = jj*params.nx;
         cells[ii + row].speeds[0] = cells[ii-1 + row].speeds[0];
         __m256 cells_1_8_vec=_mm256_loadu_ps(cells[ii-1 + row].speeds+1);
         _mm256_storeu_ps(cells[ii + row].speeds+1, cells_1_8_vec);
-
-
     }
     return EXIT_SUCCESS;
 }
