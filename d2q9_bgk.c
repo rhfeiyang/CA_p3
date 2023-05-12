@@ -17,6 +17,13 @@ int boundary(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, float
 int timestep(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, float* inlets, int* obstacles)
 {
     /* The main time overhead, you should mainly optimize these processes. */
+    /*int obstacle_num=0;
+    for(int i=0;i< params.nx*params.ny;i++){
+      if(obstacles[i]==1){
+        obstacle_num++;
+      }
+    }
+  printf("total:%d， obstacle:%d\n", params.nx*params.ny,obstacle_num);*/
     collision(params, cells, tmp_cells, obstacles);
 
     obstacle(params, cells, tmp_cells, obstacles);
@@ -347,69 +354,87 @@ int streaming(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells) {
 */
 int boundary(const t_param params, t_speed_t* cells,  t_speed_t* tmp_cells, float* inlets) {
     /* Set the constant coefficient */
-    const float cst1 = 2.0/3.0;
-    const float cst2 = 1.0/6.0;
-    const float cst3 = 1.0/2.0;
+    const __m256 cst1 =_mm256_set1_ps(2.0/3.0);
+    const __m256 cst2 =_mm256_set1_ps(1.0/6.0);
+    const __m256 cst3 =_mm256_set1_ps(1.0/2.0);
 
     int ii, jj;
-    float local_density;
+
 
     // top wall (bounce)
     jj = params.ny -1;
 #pragma omp parallel for schedule(static)
-    for(ii = 0; ii < params.nx; ii++){
+    for(ii = 0; ii < params.nx; ii+=SIMDLEN){
         int pos= ii + jj*params.nx;
-        cells[4].cells[pos] = tmp_cells[2].cells[pos];
-        cells[7].cells[pos] = tmp_cells[5].cells[pos];
-        cells[8].cells[pos] = tmp_cells[6].cells[pos];
+        _mm256_store_ps(&cells[4].cells[pos], _mm256_load_ps(&tmp_cells[2].cells[pos]));
+        _mm256_store_ps(&cells[7].cells[pos], _mm256_load_ps(&tmp_cells[5].cells[pos]));
+        _mm256_store_ps(&cells[8].cells[pos], _mm256_load_ps(&tmp_cells[6].cells[pos]));
     }
 
     // bottom wall (bounce)
     /*jj = 0;*/
 #pragma omp parallel for schedule(static)
-    for(ii = 0; ii < params.nx; ii++){
-        cells[2].cells[ii] = tmp_cells[4].cells[ii];
-        cells[5].cells[ii] = tmp_cells[7].cells[ii];
-        cells[6].cells[ii] = tmp_cells[8].cells[ii];
+    for(ii = 0; ii < params.nx; ii+=SIMDLEN){
+        _mm256_store_ps(&cells[2].cells[ii], _mm256_load_ps(&tmp_cells[4].cells[ii]));
+        _mm256_store_ps(&cells[5].cells[ii], _mm256_load_ps(&tmp_cells[7].cells[ii]));
+        _mm256_store_ps(&cells[6].cells[ii], _mm256_load_ps(&tmp_cells[8].cells[ii]));
     }
 
     // left wall (inlet)
     /*ii = 0;*/
 #pragma omp parallel for schedule(static)
-    for(jj = 0; jj < params.ny; jj++){
+    for(jj = 0; jj < params.ny; jj+=SIMDLEN){
         int pos= jj*params.nx;
-        local_density = (   cells[0].cells[pos]
+        __m256 data_0=_mm256_load_ps(&cells[0].cells[pos]);
+        __m256 data_2=_mm256_load_ps(&cells[2].cells[pos]);
+        __m256 data_3=_mm256_load_ps(&cells[3].cells[pos]);
+        __m256 data_4=_mm256_load_ps(&cells[4].cells[pos]);
+        __m256 data_6=_mm256_load_ps(&cells[6].cells[pos]);
+        __m256 data_7=_mm256_load_ps(&cells[7].cells[pos]);
+        /*local_density = (   cells[0].cells[pos]
                           + cells[2].cells[pos]
                           + cells[4].cells[pos]
                           + 2.0 * (cells[3].cells[pos]+cells[6].cells[pos]+cells[7].cells[pos])
-                        )/(1.0 - inlets[jj]);
-        float local_inlet = local_density*inlets[jj];
-        float index_cell = cells[2].cells[pos]-cells[4].cells[pos];
+                        )/(1.0 - inlets[jj]);*/
+      __m256 inlets_vec= _mm256_load_ps(&inlets[jj]);
+      __m256 local_density= _mm256_div_ps(
+                      _mm256_add_ps(
+                        _mm256_add_ps(data_0,data_2),
+                        _mm256_add_ps(data_4,_mm256_mul_ps(_mm256_set1_ps(2.),
+                                                                    _mm256_add_ps(_mm256_add_ps(data_3,data_6),data_7)))),
+                      _mm256_sub_ps(_mm256_set1_ps(1.),inlets_vec));
 
-        cells[1].cells[pos] = cells[3].cells[pos]
-                                             + cst1*local_inlet;
+        /*float local_inlet = local_density*inlets[jj];
+        float index_cell = cells[2].cells[pos]-cells[4].cells[pos];*/
+        __m256 local_inlet= _mm256_mul_ps(local_density,inlets_vec);
+        __m256 index_cell= _mm256_sub_ps(data_2,data_4);
 
-        cells[5].cells[pos] = cells[7].cells[pos]
+        /*cells[1].cells[pos] = cells[3].cells[pos]
+                                             + cst1*local_inlet;*/
+
+        /*cells[5].cells[pos] = cells[7].cells[pos]
                                              - cst3*(index_cell)
                                              + cst2*local_inlet;
 
         cells[8].cells[pos] = cells[6].cells[pos]
                                              + cst3*(index_cell)
-                                             + cst2*local_inlet;
+                                             + cst2*local_inlet;*/
+      _mm256_store_ps(&cells[1].cells[pos], _mm256_add_ps(data_3,_mm256_mul_ps(cst1,local_inlet)));
+      _mm256_store_ps(&cells[5].cells[pos], _mm256_add_ps(data_7,_mm256_sub_ps(_mm256_mul_ps(cst2,local_inlet),_mm256_mul_ps(cst3,index_cell))));
+      _mm256_store_ps(&cells[8].cells[pos], _mm256_add_ps(data_6,_mm256_add_ps(_mm256_mul_ps(cst2,local_inlet),_mm256_mul_ps(cst3,index_cell))));
 
     }
 
     // right wall (outlet)
     ii = params.nx-1;
 #pragma omp parallel for schedule(static)
-  for(jj = 0; jj < params.ny; jj++){
-        /*simd*/
-    for (int kk = 0; kk < NSPEEDS; kk++)
-        {
-            const int row=jj*params.nx;
-            cells[kk].cells[ii + row] = cells[kk].cells[ii-1 + row];
-        }
+  for (jj = 0; jj < params.ny; jj++) {
+    /*simd*/
+    for (int kk = 0; kk < NSPEEDS; kk++) {
+      const int row = jj * params.nx;
+      cells[kk].cells[ii + row] = cells[kk].cells[ii - 1 + row];
     }
+  }
     return EXIT_SUCCESS;
 }
 
