@@ -79,8 +79,8 @@ int initialise(const char* paramfile, const char* obstaclefile,
   /**tmp_cells_ptr = (t_speed*)malloc(sizeof(t_speed) * (params->ny * params->nx));
   if (*tmp_cells_ptr == NULL) die("cannot allocate memory for tmp_cells", __LINE__, __FILE__);*/
   for(int i=0;i<NSPEEDS;i++){
-    cells_ptr[i].cells = (float*)malloc(sizeof(float) * (params->ny * params->nx));
-    tmp_cells_ptr[i].cells = (float*)malloc(sizeof(float) * (params->ny * params->nx));
+    cells_ptr[i].cells =     (float*)aligned_alloc(32, sizeof(float) * (params->ny * params->nx));
+    tmp_cells_ptr[i].cells = (float*)aligned_alloc(32, sizeof(float) * (params->ny * params->nx));
     if(cells_ptr[i].cells == NULL || tmp_cells_ptr[i].cells==NULL) die("cannot allocate memory for cells", __LINE__, __FILE__);
   }
 

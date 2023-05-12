@@ -1,6 +1,6 @@
 #  Makefile
 CC = gcc
-CFLAGS = -std=c99 -Wall -Ofast
+CFLAGS = -std=c11 -Wall -Ofast
 LIBS = -lm -fopenmp -march=native -flto -ftree-vectorize -mfma
 SRC = main.c d2q9_bgk.c calc.c utils.c 
 EXE=lbm
