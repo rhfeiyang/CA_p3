@@ -280,7 +280,7 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
 int obstacle(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int* obstacles) {
 
     /* loop over the cells in the grid */
-#pragma omp parallel for schedule(static) collapse(2)
+#pragma omp parallel for schedule(static)
     for (int jj = 0; jj < params.ny; jj++)
     {
         for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
