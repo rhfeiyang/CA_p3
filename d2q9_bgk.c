@@ -288,6 +288,9 @@ int obstacle(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int* 
             int pos= ii + jj*params.nx;
             /* if the cell contains an obstacle */
             __m256i obstacle_mask= _mm256_load_si256((__m256i *)&obstacles[pos]);
+            /*int tmp[NSPEEDS];
+            _mm256_storeu_si256((__m256i *)tmp, obstacle_mask);
+            printf("%d %d %d %d %d %d %d %d\n",tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5],tmp[6],tmp[7]);*/
             if (!_mm256_testz_si256(obstacle_mask,obstacle_mask))
             {
                 __m256 obstacle_mask_ps=_mm256_castsi256_ps(_mm256_cmpeq_epi32(obstacle_mask, _mm256_set1_epi32(1)));
@@ -302,14 +305,15 @@ int obstacle(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int* 
                 tmp_cells[6].cells[pos] = cells[8].cells[pos];
                 tmp_cells[7].cells[pos] = cells[5].cells[pos];
                 tmp_cells[8].cells[pos] = cells[6].cells[pos];*/
-               #pragma GCC unroll 9
-                for(int kk=0;kk<NSPEEDS;kk++)
-                {
-                  _mm256_store_ps(&tmp_cells[kk].cells[pos],
-                          _mm256_blendv_ps(_mm256_load_ps(&tmp_cells[kk].cells[pos]),
-                                  _mm256_load_ps(&cells[kk].cells[pos]),
-                                           obstacle_mask_ps));
-                }
+                _mm256_store_ps(&tmp_cells[0].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[0].cells[pos]),_mm256_load_ps(&cells[0].cells[pos]),obstacle_mask_ps));
+                _mm256_store_ps(&tmp_cells[1].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[1].cells[pos]),_mm256_load_ps(&cells[3].cells[pos]),obstacle_mask_ps));
+                _mm256_store_ps(&tmp_cells[2].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[2].cells[pos]),_mm256_load_ps(&cells[4].cells[pos]),obstacle_mask_ps));
+                _mm256_store_ps(&tmp_cells[3].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[3].cells[pos]),_mm256_load_ps(&cells[1].cells[pos]),obstacle_mask_ps));
+                _mm256_store_ps(&tmp_cells[4].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[4].cells[pos]),_mm256_load_ps(&cells[2].cells[pos]),obstacle_mask_ps));
+                _mm256_store_ps(&tmp_cells[5].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[5].cells[pos]),_mm256_load_ps(&cells[7].cells[pos]),obstacle_mask_ps));
+                _mm256_store_ps(&tmp_cells[6].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[6].cells[pos]),_mm256_load_ps(&cells[8].cells[pos]),obstacle_mask_ps));
+                _mm256_store_ps(&tmp_cells[7].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[7].cells[pos]),_mm256_load_ps(&cells[5].cells[pos]),obstacle_mask_ps));
+                _mm256_store_ps(&tmp_cells[8].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[8].cells[pos]),_mm256_load_ps(&cells[6].cells[pos]),obstacle_mask_ps));
             }
         }
     }
