@@ -85,7 +85,8 @@ int initialise(const char* paramfile, const char* obstaclefile,
   }
 
   /* the map of obstacles */
-  *obstacles_ptr = malloc(sizeof(int) * (params->ny * params->nx));
+  /**obstacles_ptr = malloc(sizeof(int) * (params->ny * params->nx));*/
+  *obstacles_ptr= (int*)aligned_alloc(32, sizeof(int) * (params->ny * params->nx));
   if (*obstacles_ptr == NULL) die("cannot allocate column memory for obstacles", __LINE__, __FILE__);
 
   /* initialise densities */
@@ -162,8 +163,8 @@ int initialise(const char* paramfile, const char* obstaclefile,
   fclose(fp);
 
   /* allocate space to hold the velocity of the cells at the inlet. */
-  *inlets_ptr = (float*)malloc(sizeof(float) * params->ny);
-
+  /**inlets_ptr = (float*)malloc(sizeof(float) * params->ny);*/
+  *inlets_ptr= (float*)aligned_alloc(32, sizeof(float) * params->ny);
   return EXIT_SUCCESS;
 }
 
