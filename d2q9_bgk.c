@@ -384,16 +384,14 @@ int boundary(const t_param params, t_speed_t* cells,  t_speed_t* tmp_cells, floa
         _mm256_store_ps(&cells[4].cells[pos], _mm256_load_ps(&tmp_cells[2].cells[pos]));
         _mm256_store_ps(&cells[7].cells[pos], _mm256_load_ps(&tmp_cells[5].cells[pos]));
         _mm256_store_ps(&cells[8].cells[pos], _mm256_load_ps(&tmp_cells[6].cells[pos]));
-    }
-
-    // bottom wall (bounce)
-    /*jj = 0;*/
-#pragma omp parallel for schedule(static)
-    for(ii = 0; ii < params.nx; ii+=SIMDLEN){
         _mm256_store_ps(&cells[2].cells[ii], _mm256_load_ps(&tmp_cells[4].cells[ii]));
         _mm256_store_ps(&cells[5].cells[ii], _mm256_load_ps(&tmp_cells[7].cells[ii]));
         _mm256_store_ps(&cells[6].cells[ii], _mm256_load_ps(&tmp_cells[8].cells[ii]));
     }
+
+    // bottom wall (bounce)
+    /*jj = 0;*/
+
 
     // left wall (inlet)
     /*ii = 0;*/
