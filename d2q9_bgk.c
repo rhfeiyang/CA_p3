@@ -55,18 +55,13 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
   const __m256 w0_vec=_mm256_set1_ps(w0);
   const __m256 w1_vec=_mm256_set1_ps(w1);
   const __m256 w2_vec=_mm256_set1_ps(w2);
-  #pragma omp parallel for schedule(static) collapse(2)
+  #pragma omp parallel for schedule(static)
   for (int jj = 0; jj < params.ny; jj++)
   {
     for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
     {
       const int pos = ii + jj*params.nx;
-      __m256 data[NSPEEDS]={_mm256_load_ps(&cells[0].cells[pos]),_mm256_load_ps(&cells[1].cells[pos]),_mm256_load_ps(&cells[2].cells[pos]),
-                            _mm256_load_ps(&cells[3].cells[pos]),_mm256_load_ps(&cells[4].cells[pos]),
-                            _mm256_load_ps(&cells[5].cells[pos]),_mm256_load_ps(&cells[6].cells[pos]),
-                            _mm256_load_ps(&cells[7].cells[pos]),_mm256_load_ps(&cells[8].cells[pos])};
 
-      __m256i obstacle_mask=_mm256_xor_si256(_mm256_load_si256((__m256i *)&obstacles[pos]),_mm256_set1_epi32(1));
       /* __m256i obstacle_mask=_mm256_load_si256((__m256i *)&obstacles[pos]); */
 /*       int tmp[9];
       _mm256_storeu_si256(tmp,obstacle_mask);
@@ -74,8 +69,14 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
             printf("obs=%d",obstacles[pos]);
             printf("tmp[%d]=%d\n",i,tmp[i]);
         } */
-
+      __m256i obstacle_mask=_mm256_xor_si256(_mm256_load_si256((__m256i *)&obstacles[pos]),_mm256_set1_epi32(1));
       if (!_mm256_testz_si256(obstacle_mask,obstacle_mask)){
+        __m256 data[NSPEEDS]={_mm256_load_ps(&cells[0].cells[pos]),_mm256_load_ps(&cells[1].cells[pos]),_mm256_load_ps(&cells[2].cells[pos]),
+                              _mm256_load_ps(&cells[3].cells[pos]),_mm256_load_ps(&cells[4].cells[pos]),
+                              _mm256_load_ps(&cells[5].cells[pos]),_mm256_load_ps(&cells[6].cells[pos]),
+                              _mm256_load_ps(&cells[7].cells[pos]),_mm256_load_ps(&cells[8].cells[pos])};
+
+
         /* compute local density total */
         /* float local_density = 0.f; */
         __m256 local_density_vec = _mm256_setzero_ps();
@@ -280,7 +281,7 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
 int obstacle(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int* obstacles) {
 
     /* loop over the cells in the grid */
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(dynamic)
     for (int jj = 0; jj < params.ny; jj++)
     {
         for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
