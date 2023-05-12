@@ -55,12 +55,12 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
     for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
     {
       const int pos = ii + jj*params.nx;
-      __m256 data[NSPEEDS]={_mm256_loadu_ps(&cells[0].cells[pos]),_mm256_loadu_ps(&cells[1].cells[pos]),_mm256_loadu_ps(&cells[2].cells[pos]),
-                            _mm256_loadu_ps(&cells[3].cells[pos]),_mm256_loadu_ps(&cells[4].cells[pos]),
-                            _mm256_loadu_ps(&cells[5].cells[pos]),_mm256_loadu_ps(&cells[6].cells[pos]),
-                            _mm256_loadu_ps(&cells[7].cells[pos]),_mm256_loadu_ps(&cells[8].cells[pos])};
+      __m256 data[NSPEEDS]={_mm256_load_ps(&cells[0].cells[pos]),_mm256_load_ps(&cells[1].cells[pos]),_mm256_load_ps(&cells[2].cells[pos]),
+                            _mm256_load_ps(&cells[3].cells[pos]),_mm256_load_ps(&cells[4].cells[pos]),
+                            _mm256_load_ps(&cells[5].cells[pos]),_mm256_load_ps(&cells[6].cells[pos]),
+                            _mm256_load_ps(&cells[7].cells[pos]),_mm256_load_ps(&cells[8].cells[pos])};
 
-      __m256i obstacle_mask=_mm256_xor_si256(_mm256_loadu_si256((__m256i *)&obstacles[pos]),_mm256_set1_epi32(1));
+      __m256i obstacle_mask=_mm256_xor_si256(_mm256_load_si256((__m256i *)&obstacles[pos]),_mm256_set1_epi32(1));
       /* __m256i obstacle_mask=_mm256_load_si256((__m256i *)&obstacles[pos]); */
 /*       int tmp[9];
       _mm256_storeu_si256(tmp,obstacle_mask);
@@ -253,7 +253,7 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
         /* printf("%f\n",cells[pos].speeds[1]); */
         for (int kk = 0; kk < NSPEEDS; kk++)
         {
-            _mm256_storeu_ps(&tmp_cells[kk].cells[pos],
+            _mm256_store_ps(&tmp_cells[kk].cells[pos],
                                     _mm256_add_ps(data[kk],
                                         _mm256_mul_ps(
                                         _mm256_set1_ps(params.omega), 
