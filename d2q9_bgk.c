@@ -328,7 +328,7 @@ int obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int
 ** Particles flow to the corresponding cell according to their speed direaction.
 */
 int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
-    int BLOCK_SIZE = 128;
+    int BLOCK_SIZE = 32;
     int nx = params.nx;
     int ny = params.ny;
     int nxny = nx * ny;
