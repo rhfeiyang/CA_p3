@@ -13,15 +13,15 @@
 #define SIMDLEN        8
 typedef struct
 {
-  int    ny;            /* no. of cells in y-direction */
-  int    nx;            /* no. of cells in x-direction */
-  float  omega;         /* relaxation parameter */
-  int    maxIters;      /* no. of iterations */
-  float  density;       /* density per cell */
-  float  viscosity;     /* kinematic viscosity of fluid */
-  float  velocity;      /* inlet velocity */
-  int    type;          /* inlet type */
-  
+    int    ny;            /* no. of cells in y-direction */
+    int    nx;            /* no. of cells in x-direction */
+    float  omega;         /* relaxation parameter */
+    int    maxIters;      /* no. of iterations */
+    float  density;       /* density per cell */
+    float  viscosity;     /* kinematic viscosity of fluid */
+    float  velocity;      /* inlet velocity */
+    int    type;          /* inlet type */
+
 } t_param;
 
 /* struct to hold the distribution of different speeds */

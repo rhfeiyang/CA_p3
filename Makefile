@@ -1,7 +1,7 @@
 #  Makefile
 CC = gcc
-CFLAGS = -std=c99 -Wall -Ofast
-LIBS = -lm -fopenmp -march=native
+CFLAGS = -std=c11 -Wall -Ofast
+LIBS = -lm -fopenmp -march=native -mtune=native -mavx2
 SRC = main.c d2q9_bgk.c calc.c utils.c 
 EXE=lbm
 
