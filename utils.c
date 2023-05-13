@@ -194,7 +194,7 @@ int write_state(char* filename, const t_param params, t_speed* cells, int* obsta
         printf("%s\n",filename);
         die("could not open file output file", __LINE__, __FILE__);
     }
-
+    #pragma omp parallel for schedule(static)
     /* loop on grid to calculate the velocity of each cell */
     for (int jj = 0; jj < params.ny; jj++)
     {
