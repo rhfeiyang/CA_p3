@@ -82,6 +82,7 @@ int main(int argc, char* argv[])
     comp_time = timstr.tv_sec + (timstr.tv_usec / 1000000.0);
 
     /* timestep loop */
+#pragma omp parallel for schedule(static)
     for (int tt = 0; tt < params.maxIters; tt++)
     {
         timestep(params, cells, tmp_cells, inlets, obstacles);
