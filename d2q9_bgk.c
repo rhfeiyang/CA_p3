@@ -324,18 +324,19 @@ int obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int
     return EXIT_SUCCESS;
 }
 
-
 /*
 ** Particles flow to the corresponding cell according to their speed direaction.
 */
 int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
+    int BLOCK_SIZE= 32;
     /* loop over _all_ cells */
-#pragma omp parallel for schedule(static) collapse(2)
-    for (int jj = 0; jj < params.ny; jj++)
+#pragma omp parallel for schedule(static)
+    for (int block = 0; block < params.nx*params.ny; block += BLOCK_SIZE)
     {
-        for (int ii = 0; ii < params.nx; ii++)
+        for (int pos = block; pos < block + BLOCK_SIZE; pos++)
         {
-            int pos= ii + jj*params.nx;
+            int jj = pos / params.nx;
+            int ii = pos % params.nx;
             int jx = jj * params.nx;
 
             /* determine indices of axis-direction neighbours
@@ -346,18 +347,18 @@ int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
             int x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
             int ynx = y_n * params.nx;
             int ysx = y_s * params.nx;
+
             /* propagate densities from neighbouring cells, following
             ** appropriate directions of travel and writing into
             ** scratch space grid */
             int pos_set=pos/SIMDLEN; int pos_ind=pos%SIMDLEN;
-            (*cells)[pos_set].speed[0][pos_ind ]      = (*tmp_cells)[pos_set].speed[0][pos_ind]; /* central cell, no movement */
+            (*cells)[pos_set].speed[0][pos_ind]      = (*tmp_cells)[pos_set].speed[0][pos_ind]; /* central cell, no movement */
             int tmp_pos=x_e + jx; int set=tmp_pos/SIMDLEN; int ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[1][ind ] = (*tmp_cells)[pos_set].speed[1][pos_ind]; /* east */
+            (*cells)[set].speed[1][ind] = (*tmp_cells)[pos_set].speed[1][pos_ind]; /* east */
             tmp_pos=ii + ynx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
             (*cells)[set].speed[2][ind] = (*tmp_cells)[pos_set].speed[2][pos_ind]; /* north */
-
             tmp_pos=x_w + jx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[3][ind ] = (*tmp_cells)[pos_set].speed[3][pos_ind]; /* west */
+            (*cells)[set].speed[3][ind] = (*tmp_cells)[pos_set].speed[3][pos_ind]; /* west */
             tmp_pos=ii  + ysx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
             (*cells)[set].speed[4][ind] = (*tmp_cells)[pos_set].speed[4][pos_ind]; /* south */
             tmp_pos=x_e + ynx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
