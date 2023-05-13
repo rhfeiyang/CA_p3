@@ -1,7 +1,7 @@
 #  Makefile
 CC = gcc
 CFLAGS = -std=c11 -Wall -Ofast
-LIBS = -lm -fopenmp -march=native -mtune=native -pipe -flto -funroll-loops -floop-strip-mine -fomit-frame-pointer
+LIBS = -lm -fopenmp -march=native -mtune=native -pipe -flto -funroll-loops -floop-strip-mine -ftree-vectorize -floop-interchange -fomit-frame-pointer
 SRC = main.c d2q9_bgk.c calc.c utils.c 
 EXE=lbm
 
