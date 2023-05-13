@@ -4,17 +4,17 @@
 
 /*zxx test-5.8*/
 /* The main processes in one step */
-int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int* obstacles);
-int streaming(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells);
-int obstacle(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int* obstacles);
-int boundary(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, float* inlets);
+int collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles);
+int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells);
+int obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles);
+int boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets);
 
 /*
 ** The main calculation methods.
 ** timestep calls, in order, the functions:
 ** collision(), obstacle(), streaming() & boundary()
 */
-int timestep(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, float* inlets, int* obstacles)
+int timestep(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets, int* obstacles)
 {
     /* The main time overhead, you should mainly optimize these processes. */
     /*int obstacle_num=0;
@@ -30,7 +30,7 @@ int timestep(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, float
     streaming(params, cells, tmp_cells);
     boundary(params, cells, tmp_cells, inlets);
   /*for(int i=0;i<NSPEEDS;i++){
-    printf("tmpcells[%d].speeds[0]=%f\n",i,tmp_cells[i].cells[0]);
+    printf("tmp(*cells)[%d].speeds[0]=%f\n",i,(*tmp_cells)[i][0]);
   }*/
     return EXIT_SUCCESS;
 }
@@ -44,7 +44,7 @@ const float w0 = 4.f / 9.f;   /* weighting factor */
 const float w1 = 1.f / 9.f;   /* weighting factor */
 const float w2 = 1.f / 36.f;  /* weighting factor */
 
-int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int* obstacles) {
+int collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles) {
   /* loop over the cells in the grid
   ** the collision step is called before
   ** the streaming step and so values of interest
@@ -61,7 +61,8 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
     for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
     {
       const int pos = ii + jj*params.nx;
-
+      const int set=pos/SIMDLEN;
+      int ind=pos%SIMDLEN;
       /* __m256i obstacle_mask=_mm256_load_si256((__m256i *)&obstacles[pos]); */
 /*       int tmp[9];
       _mm256_storeu_si256(tmp,obstacle_mask);
@@ -71,10 +72,10 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
         } */
       __m256i obstacle_mask=_mm256_xor_si256(_mm256_load_si256((__m256i *)&obstacles[pos]),_mm256_set1_epi32(1));
       if (!_mm256_testz_si256(obstacle_mask,obstacle_mask)){
-        __m256 data[NSPEEDS]={_mm256_load_ps(&cells[0].cells[pos]),_mm256_load_ps(&cells[1].cells[pos]),_mm256_load_ps(&cells[2].cells[pos]),
-                              _mm256_load_ps(&cells[3].cells[pos]),_mm256_load_ps(&cells[4].cells[pos]),
-                              _mm256_load_ps(&cells[5].cells[pos]),_mm256_load_ps(&cells[6].cells[pos]),
-                              _mm256_load_ps(&cells[7].cells[pos]),_mm256_load_ps(&cells[8].cells[pos])};
+        __m256 data[NSPEEDS]={_mm256_load_ps(&(*cells)[set].speed[0][ind]),_mm256_load_ps(&(*cells)[set].speed[1][ind]),_mm256_load_ps(&(*cells)[set].speed[2][ind]),
+                              _mm256_load_ps(&(*cells)[set].speed[3][ind]),_mm256_load_ps(&(*cells)[set].speed[4][ind]),
+                              _mm256_load_ps(&(*cells)[set].speed[5][ind]),_mm256_load_ps(&(*cells)[set].speed[6][ind]),
+                              _mm256_load_ps(&(*cells)[set].speed[7][ind]),_mm256_load_ps(&(*cells)[set].speed[8][ind])};
 
 
         /* compute local density total */
@@ -86,12 +87,12 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
         }
 
         /* compute x velocity component */
-        /* float u_x = (cells[pos].cells[1]
-                      + cells[pos].cells[5]
-                      + cells[pos].cells[8]
-                      - (cells[pos].cells[3]
-                         + cells[pos].cells[6]
-                         + cells[pos].cells[7]))
+        /* float u_x = ((*cells)[pos][1]
+                      + (*cells)[pos][5]
+                      + (*cells)[pos][8]
+                      - ((*cells)[pos][3]
+                         + (*cells)[pos][6]
+                         + (*cells)[pos][7]))
                      / local_density; */
         __m256 u_x_vec =_mm256_div_ps(
                             _mm256_sub_ps(
@@ -101,12 +102,12 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
                                 _mm256_add_ps(data[6],data[7])),
                             local_density_vec);
         /* compute y velocity component */
-        /* float u_y = (cells[pos].cells[2]
-                      + cells[pos].cells[5]
-                      + cells[pos].cells[6]
-                      - (cells[pos].cells[4]
-                         + cells[pos].cells[7]
-                         + cells[pos].cells[8]))
+        /* float u_y = ((*cells)[pos][2]
+                      + (*cells)[pos][5]
+                      + (*cells)[pos][6]
+                      - ((*cells)[pos][4]
+                         + (*cells)[pos][7]
+                         + (*cells)[pos][8]))
                      / local_density; */
         __m256 u_y_vec =_mm256_div_ps(
                             _mm256_sub_ps(
@@ -257,10 +258,10 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
                                 u_sq_2_c_sq_vec));
 
         /* simd */
-        /* printf("%f\n",cells[pos].speeds[1]); */
+        /* printf("%f\n",(*cells)[pos].speeds[1]); */
         for (int kk = 0; kk < NSPEEDS; kk++)
         {
-            _mm256_store_ps(&tmp_cells[kk].cells[pos],
+            _mm256_store_ps(&(*tmp_cells)[set].speed[kk][ind],
                                     _mm256_add_ps(data[kk],
                                         _mm256_mul_ps(
                                         _mm256_set1_ps(params.omega), 
@@ -269,7 +270,7 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
         /* relaxation step */
         /*for (int kk = 0; kk < NSPEEDS; kk++)
         {
-          tmp_cells[pos].speeds[kk] = cells[pos].speeds[kk]+ params.omega * (d_equ[kk] - cells[pos].speeds[kk]);
+          (*tmp_cells)[pos].speeds[kk] = (*cells)[pos].speeds[kk]+ params.omega * (d_equ[kk] - (*cells)[pos].speeds[kk]);
         }*/
       }
     }
@@ -278,7 +279,7 @@ int collision(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int*
 }
 
 
-int obstacle(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int* obstacles) {
+int obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles) {
 
     /* loop over the cells in the grid */
 #pragma omp parallel for schedule(dynamic)
@@ -297,24 +298,26 @@ int obstacle(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int* 
                 __m256 obstacle_mask_ps=_mm256_castsi256_ps(_mm256_cmpeq_epi32(obstacle_mask, _mm256_set1_epi32(1)));
                 /* called after collision, so taking values from scratch space
                 ** mirroring, and writing into main grid */
-                /*tmp_cells[0].cells[pos] = cells[0].cells[pos];
-                tmp_cells[1].cells[pos] = cells[3].cells[pos];
-                tmp_cells[2].cells[pos] = cells[4].cells[pos];
-                tmp_cells[3].cells[pos] = cells[1].cells[pos];
-                tmp_cells[4].cells[pos] = cells[2].cells[pos];
-                tmp_cells[5].cells[pos] = cells[7].cells[pos];
-                tmp_cells[6].cells[pos] = cells[8].cells[pos];
-                tmp_cells[7].cells[pos] = cells[5].cells[pos];
-                tmp_cells[8].cells[pos] = cells[6].cells[pos];*/
-                _mm256_store_ps(&tmp_cells[0].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[0].cells[pos]),_mm256_load_ps(&cells[0].cells[pos]),obstacle_mask_ps));
-                _mm256_store_ps(&tmp_cells[1].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[1].cells[pos]),_mm256_load_ps(&cells[3].cells[pos]),obstacle_mask_ps));
-                _mm256_store_ps(&tmp_cells[2].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[2].cells[pos]),_mm256_load_ps(&cells[4].cells[pos]),obstacle_mask_ps));
-                _mm256_store_ps(&tmp_cells[3].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[3].cells[pos]),_mm256_load_ps(&cells[1].cells[pos]),obstacle_mask_ps));
-                _mm256_store_ps(&tmp_cells[4].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[4].cells[pos]),_mm256_load_ps(&cells[2].cells[pos]),obstacle_mask_ps));
-                _mm256_store_ps(&tmp_cells[5].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[5].cells[pos]),_mm256_load_ps(&cells[7].cells[pos]),obstacle_mask_ps));
-                _mm256_store_ps(&tmp_cells[6].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[6].cells[pos]),_mm256_load_ps(&cells[8].cells[pos]),obstacle_mask_ps));
-                _mm256_store_ps(&tmp_cells[7].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[7].cells[pos]),_mm256_load_ps(&cells[5].cells[pos]),obstacle_mask_ps));
-                _mm256_store_ps(&tmp_cells[8].cells[pos],_mm256_blendv_ps(_mm256_load_ps(&tmp_cells[8].cells[pos]),_mm256_load_ps(&cells[6].cells[pos]),obstacle_mask_ps));
+                /*(*tmp_cells)[0][pos] = (*cells)[0][pos];
+                (*tmp_cells)[1][pos] = (*cells)[3][pos];
+                (*tmp_cells)[2][pos] = (*cells)[4][pos];
+                (*tmp_cells)[3][pos] = (*cells)[1][pos];
+                (*tmp_cells)[4][pos] = (*cells)[2][pos];
+                (*tmp_cells)[5][pos] = (*cells)[7][pos];
+                (*tmp_cells)[6][pos] = (*cells)[8][pos];
+                (*tmp_cells)[7][pos] = (*cells)[5][pos];
+                (*tmp_cells)[8][pos] = (*cells)[6][pos];*/
+                const int set=pos/SIMDLEN;
+                int ind=pos%SIMDLEN;
+                _mm256_store_ps(&(*tmp_cells)[set].speed[0][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[0][ind]),_mm256_load_ps(&(*cells)[set].speed[0][ind]),obstacle_mask_ps));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[1][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[1][ind]),_mm256_load_ps(&(*cells)[set].speed[3][ind]),obstacle_mask_ps));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[2][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[2][ind]),_mm256_load_ps(&(*cells)[set].speed[4][ind]),obstacle_mask_ps));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[3][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[3][ind]),_mm256_load_ps(&(*cells)[set].speed[1][ind]),obstacle_mask_ps));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[4][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[4][ind]),_mm256_load_ps(&(*cells)[set].speed[2][ind]),obstacle_mask_ps));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[5][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[5][ind]),_mm256_load_ps(&(*cells)[set].speed[7][ind]),obstacle_mask_ps));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[6][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[6][ind]),_mm256_load_ps(&(*cells)[set].speed[8][ind]),obstacle_mask_ps));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[7][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[7][ind]),_mm256_load_ps(&(*cells)[set].speed[5][ind]),obstacle_mask_ps));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[8][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[8][ind]),_mm256_load_ps(&(*cells)[set].speed[6][ind]),obstacle_mask_ps));
             }
         }
     }
@@ -325,7 +328,7 @@ int obstacle(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells, int* 
 /*
 ** Particles flow to the corresponding cell according to their speed direaction.
 */
-int streaming(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells) {
+int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
     /* loop over _all_ cells */
 #pragma omp parallel for schedule(static) collapse(2)
     for (int jj = 0; jj < params.ny; jj++)
@@ -346,18 +349,27 @@ int streaming(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells) {
             /* propagate densities from neighbouring cells, following
             ** appropriate directions of travel and writing into
             ** scratch space grid */
-            cells[0]. cells[pos ] = tmp_cells[0].cells[pos]; /* central cell, no movement */
-            cells[1]. cells[x_e + jx ] = tmp_cells[1].cells[pos]; /* east */
-            cells[2].cells [ii  + ynx] = tmp_cells[2].cells[pos]; /* north */
-            cells[3]. cells[x_w + jx ] = tmp_cells[3].cells[pos]; /* west */
-            cells[4].cells [ii  + ysx] = tmp_cells[4].cells[pos]; /* south */
-            cells[5].cells [x_e + ynx] = tmp_cells[5].cells[pos]; /* north-east */
-            cells[6].cells [x_w + ynx] = tmp_cells[6].cells[pos]; /* north-west */
-            cells[7].cells [x_w + ysx] = tmp_cells[7].cells[pos]; /* south-west */
-            cells[8].cells [x_e + ysx] = tmp_cells[8].cells[pos]; /* south-east */
+            int pos_set=pos/SIMDLEN; int pos_ind=pos%SIMDLEN;
+            (*cells)[pos_set].speed[0][pos_ind ]      = (*tmp_cells)[pos_set].speed[0][pos_ind]; /* central cell, no movement */
+            int tmp_pos=x_e + jx; int set=tmp_pos/SIMDLEN; int ind=tmp_pos%SIMDLEN;
+            (*cells)[set].speed[1][ind ] = (*tmp_cells)[pos_set].speed[1][pos_ind]; /* east */
+            tmp_pos=ii + ynx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+            (*cells)[set].speed[2][ind] = (*tmp_cells)[pos_set].speed[2][pos_ind]; /* north */
+            
+            tmp_pos=x_w + jx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+            (*cells)[set].speed[3][ind ] = (*tmp_cells)[pos_set].speed[3][pos_ind]; /* west */
+          tmp_pos=ii  + ysx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+            (*cells)[set].speed[4][ind] = (*tmp_cells)[pos_set].speed[4][pos_ind]; /* south */
+          tmp_pos=x_e + ynx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+            (*cells)[set].speed[5][ind] = (*tmp_cells)[pos_set].speed[5][pos_ind]; /* north-east */
+          tmp_pos=x_w + ynx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+            (*cells)[set].speed[6][ind] = (*tmp_cells)[pos_set].speed[6][pos_ind]; /* north-west */
+          tmp_pos=x_w + ysx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+            (*cells)[set].speed[7][ind] = (*tmp_cells)[pos_set].speed[7][pos_ind]; /* south-west */
+          tmp_pos=x_e + ysx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+            (*cells)[set].speed[8][ind] = (*tmp_cells)[pos_set].speed[8][pos_ind]; /* south-east */
         }
     }
-
     return EXIT_SUCCESS;
 }
 
@@ -367,7 +379,7 @@ int streaming(const t_param params, t_speed_t* cells, t_speed_t* tmp_cells) {
 ** the left border is the inlet of fixed speed, and
 ** the right border is the open outlet of the first-order approximation.
 */
-int boundary(const t_param params, t_speed_t* cells,  t_speed_t* tmp_cells, float* inlets) {
+int boundary(const t_param params, t_speed_t** cells,  t_speed_t** tmp_cells, float* inlets) {
     /* Set the constant coefficient */
     const float cst1 =2.0/3.0;
     const float cst2 =1.0/6.0;
@@ -380,13 +392,16 @@ int boundary(const t_param params, t_speed_t* cells,  t_speed_t* tmp_cells, floa
     jj = params.ny -1;
 #pragma omp parallel for schedule(static)
     for(ii = 0; ii < params.nx; ii+=SIMDLEN){
-        int pos= ii + jj*params.nx;
-        _mm256_store_ps(&cells[4].cells[pos], _mm256_load_ps(&tmp_cells[2].cells[pos]));
-        _mm256_store_ps(&cells[7].cells[pos], _mm256_load_ps(&tmp_cells[5].cells[pos]));
-        _mm256_store_ps(&cells[8].cells[pos], _mm256_load_ps(&tmp_cells[6].cells[pos]));
-        _mm256_store_ps(&cells[2].cells[ii], _mm256_load_ps(&tmp_cells[4].cells[ii]));
-        _mm256_store_ps(&cells[5].cells[ii], _mm256_load_ps(&tmp_cells[7].cells[ii]));
-        _mm256_store_ps(&cells[6].cells[ii], _mm256_load_ps(&tmp_cells[8].cells[ii]));
+        const int pos= ii + jj*params.nx;
+        int set=pos/SIMDLEN;
+        int ind=pos%SIMDLEN;
+        _mm256_store_ps(&(*cells)[set].speed[4][ind], _mm256_load_ps(&(*tmp_cells)[set].speed[2][ind]));
+        _mm256_store_ps(&(*cells)[set].speed[7][ind], _mm256_load_ps(&(*tmp_cells)[set].speed[5][ind]));
+        _mm256_store_ps(&(*cells)[set].speed[8][ind], _mm256_load_ps(&(*tmp_cells)[set].speed[6][ind]));
+        set=ii/SIMDLEN; ind=ii%SIMDLEN;
+        _mm256_store_ps(&(*cells)[set].speed[2][ind], _mm256_load_ps( &(*tmp_cells)[set].speed[4][ind]));
+        _mm256_store_ps(&(*cells)[set].speed[5][ind], _mm256_load_ps( &(*tmp_cells)[set].speed[7][ind]));
+        _mm256_store_ps(&(*cells)[set].speed[6][ind], _mm256_load_ps( &(*tmp_cells)[set].speed[8][ind]));
     }
 
     // bottom wall (bounce)
@@ -397,23 +412,25 @@ int boundary(const t_param params, t_speed_t* cells,  t_speed_t* tmp_cells, floa
     /*ii = 0;*/
 #pragma omp parallel for schedule(static)
     for(jj = 0; jj < params.ny; jj++){
-        int pos= jj*params.nx;
-        float local_density = (   cells[0].cells[pos]
-                          + cells[2].cells[pos]
-                          + cells[4].cells[pos]
-                          + 2.0 * (cells[3].cells[pos]+cells[6].cells[pos]+cells[7].cells[pos])
+        const int pos= jj*params.nx;
+        const int set=pos/SIMDLEN;
+        int ind=pos%SIMDLEN;
+        float local_density = ((*cells)[set].speed[0][ind]
+                          + (*cells)[set].speed[2][ind]
+                          + (*cells)[set].speed[4][ind]
+                          + 2.0 * ((*cells)[set].speed[3][ind]+(*cells)[set].speed[6][ind]+(*cells)[set].speed[7][ind])
                         )/(1.0 - inlets[jj]);
         float local_inlet = local_density*inlets[jj];
-        float index_cell = cells[2].cells[pos]-cells[4].cells[pos];
+        float index_cell = (*cells)[set].speed[2][ind]-(*cells)[set].speed[4][ind];
 
-        cells[1].cells[pos] = cells[3].cells[pos]
+        (*cells)[set].speed[1][ind] = (*cells)[set].speed[3][ind]
                                              + cst1*local_inlet;
 
-        cells[5].cells[pos] = cells[7].cells[pos]
+        (*cells)[set].speed[5][ind] = (*cells)[set].speed[7][ind]
                                              - cst3*(index_cell)
                                              + cst2*local_inlet;
 
-        cells[8].cells[pos] = cells[6].cells[pos]
+        (*cells)[set].speed[8][ind] = (*cells)[set].speed[6][ind]
                                              + cst3*(index_cell)
                                              + cst2*local_inlet;
 
@@ -426,7 +443,9 @@ int boundary(const t_param params, t_speed_t* cells,  t_speed_t* tmp_cells, floa
     /*simd*/
     for (int kk = 0; kk < NSPEEDS; kk++) {
       const int row = jj * params.nx;
-      cells[kk].cells[ii + row] = cells[kk].cells[ii - 1 + row];
+      int pos1= ii + row;
+      int pos2= ii - 1 + row;
+      (*cells)[pos1/SIMDLEN].speed[kk][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[kk][pos2%SIMDLEN];
     }
   }
     return EXIT_SUCCESS;

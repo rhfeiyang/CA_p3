@@ -28,8 +28,8 @@ int main(int argc, char* argv[])
   t_param  params;              /* struct to hold parameter values */
   /*t_speed* cells     = NULL;*/    /* grid containing fluid densities */
   /*t_speed* tmp_cells = NULL;*/    /* scratch space */
-  t_speed_t cells[NSPEEDS];
-  t_speed_t tmp_cells[NSPEEDS];
+  t_speed_t* cells=NULL;
+  t_speed_t* tmp_cells=NULL;
   int*     obstacles = NULL;    /* grid indicating which cells are blocked */
   float*   inlets    = NULL;    /* inlet velocity */  
   struct timeval timstr;                   /* structure to hold elapsed time */
@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
   total_time = timstr.tv_sec + (timstr.tv_usec / 1000000.0);
   init_time = total_time;
   /* initialise our data structures and load values from file */
-  initialise(paramfile, obstaclefile, &params, cells, tmp_cells, &obstacles, &inlets);
+  initialise(paramfile, obstaclefile, &params, &cells, &tmp_cells, &obstacles, &inlets);
   /* Set the inlet speed */
   set_inlets(params, inlets);
   /* Init time stops here */
@@ -86,13 +86,13 @@ int main(int argc, char* argv[])
   /* timestep loop */
   for (int tt = 0; tt < params.maxIters; tt++)
   {
-    timestep(params, cells, tmp_cells, inlets, obstacles);
+    timestep(params, &cells, &tmp_cells, inlets, obstacles);
 
   /* Visualization */
 #ifdef VISUAL
     if (tt % 1000 == 0) {
       sprintf(buf, "%s/visual/state_%d.dat", out_dir , tt / 1000);
-      write_state(buf, params, cells, obstacles);
+      write_state(buf, params, &cells, obstacles);
     }
 #endif
   }
@@ -103,17 +103,17 @@ int main(int argc, char* argv[])
 
   /* write final state and free memory */
   sprintf(buf, "%s/final_state.dat", out_dir);
-  write_state(buf, params, cells, obstacles);
+  write_state(buf, params, &cells, obstacles);
 
   /* Display Reynolds number and time */
   printf("==done==\n");
-  printf("Reynolds number:\t\t\t%.12E\n", calc_reynolds(params, cells, obstacles));
-  printf("Average velocity:\t\t\t%.12E\n", av_velocity(params, cells, obstacles));
+  printf("Reynolds number:\t\t\t%.12E\n", calc_reynolds(params, &cells, obstacles));
+  printf("Average velocity:\t\t\t%.12E\n", av_velocity(params, &cells, obstacles));
   printf("Elapsed Init time:\t\t\t%.6lf (s)\n",    init_time);
   printf("Elapsed Compute time:\t\t\t%.6lf (s)\n", comp_time);
 
   /* finalise */
-  finalise(&params, cells, tmp_cells, &obstacles, &inlets);
+  finalise(&params, &cells, &tmp_cells, &obstacles, &inlets);
 
   /* total time stop */
   gettimeofday(&timstr, NULL);

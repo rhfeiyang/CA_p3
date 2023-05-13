@@ -30,9 +30,15 @@ typedef struct
   float speeds[NSPEEDS];
 } t_speed;*/
 
-typedef struct
-{
-    float *cells;
+typedef struct{
+    /* (n/8) *9 * 8 */
+    float speed[NSPEEDS][SIMDLEN];
 } t_speed_t;
+
+/*typedef struct
+{
+    *//* (n/8) * 9 * 8 *//*
+    t_speed_block* blocks;
+} t_speed_t;*/
 
 #endif
