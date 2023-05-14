@@ -344,34 +344,27 @@ int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
             int x_e = (ii + 1) % params.nx;
             int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
             int x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
-            int ynx = y_n * params.nx;
-            int ysx = y_s * params.nx;
+            int ynx = y_n*params.nx;
+            int ysx = y_s*params.nx;
             /* propagate densities from neighbouring cells, following
             ** appropriate directions of travel and writing into
             ** scratch space grid */
             int pos_set=pos/SIMDLEN; int pos_ind=pos%SIMDLEN;
             (*cells)[pos_set].speed[0][pos_ind ]      = (*tmp_cells)[pos_set].speed[0][pos_ind]; /* central cell, no movement */
-            int tmp_pos=x_e + jx; int set=tmp_pos/SIMDLEN; int ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[1][ind ] = (*tmp_cells)[pos_set].speed[1][pos_ind]; /* east */
-            tmp_pos=ii + ynx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[2][ind] = (*tmp_cells)[pos_set].speed[2][pos_ind]; /* north */
-
-            tmp_pos=x_w + jx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[3][ind ] = (*tmp_cells)[pos_set].speed[3][pos_ind]; /* west */
-            tmp_pos=ii  + ysx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[4][ind] = (*tmp_cells)[pos_set].speed[4][pos_ind]; /* south */
-            tmp_pos=x_e + ynx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[5][ind] = (*tmp_cells)[pos_set].speed[5][pos_ind]; /* north-east */
-            tmp_pos=x_w + ynx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[6][ind] = (*tmp_cells)[pos_set].speed[6][pos_ind]; /* north-west */
-            tmp_pos=x_w + ysx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[7][ind] = (*tmp_cells)[pos_set].speed[7][pos_ind]; /* south-west */
-            tmp_pos=x_e + ysx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[8][ind] = (*tmp_cells)[pos_set].speed[8][pos_ind]; /* south-east */
+            int tmp_pos=x_w + jx;int set=tmp_pos/SIMDLEN;int ind=tmp_pos%SIMDLEN;   (*cells)[pos_set].speed[1][pos_ind] = (*tmp_cells)[set].speed[1][ind]; /* east */
+            tmp_pos=    ii  + ysx;   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;         (*cells)[pos_set].speed[2][pos_ind] = (*tmp_cells)[set].speed[2][ind]; /* north */
+            tmp_pos=    x_e + jx ;   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;         (*cells)[pos_set].speed[3][pos_ind] = (*tmp_cells)[set].speed[3][ind]; /* west */
+            tmp_pos=    ii  + ynx;   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;         (*cells)[pos_set].speed[4][pos_ind] = (*tmp_cells)[set].speed[4][ind]; /* south */
+            tmp_pos=    x_w + ysx;   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;         (*cells)[pos_set].speed[5][pos_ind] = (*tmp_cells)[set].speed[5][ind]; /* north-east */
+            tmp_pos=    x_e + ysx;   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;         (*cells)[pos_set].speed[6][pos_ind] = (*tmp_cells)[set].speed[6][ind]; /* north-west */
+            tmp_pos=    x_e + ynx;   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;         (*cells)[pos_set].speed[7][pos_ind] = (*tmp_cells)[set].speed[7][ind]; /* south-west */
+            tmp_pos=    x_w + ynx;   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;         (*cells)[pos_set].speed[8][pos_ind] = (*tmp_cells)[set].speed[8][ind]; /* south-east */
         }
     }
     return EXIT_SUCCESS;
 }
+
+
 
 
 /*
