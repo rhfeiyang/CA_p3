@@ -328,51 +328,59 @@ int obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int
 ** Particles flow to the corresponding cell according to their speed direaction.
 */
 int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
-    int BLOCK_SIZE= 32;
+
+    /* Define the tile size */
+#define TILE_SIZE 16
+
     /* loop over _all_ cells */
-#pragma omp parallel for schedule(static)
-    for (int block = 0; block < params.nx*params.ny; block += BLOCK_SIZE)
-    {
-        for (int pos = block; pos < block + BLOCK_SIZE; pos++)
-        {
-            int jj = pos / params.nx;
-            int ii = pos % params.nx;
-            int jx = jj * params.nx;
+#pragma omp parallel for schedule(static) collapse(2)
+    for (int jj = 0; jj < params.ny; jj += TILE_SIZE) {
+        for (int ii = 0; ii < params.nx; ii += TILE_SIZE) {
+            for (int jjj = jj; jjj < jj + TILE_SIZE && jjj < params.ny; ++jjj) {
+                for (int iii = ii; iii < ii + TILE_SIZE && iii < params.nx; ++iii) {
+                    /* Now use iii and jjj instead of ii and jj in the existing code */
 
-            /* determine indices of axis-direction neighbours
-            ** respecting periodic boundary conditions (wrap around) */
-            int y_n = (jj + 1) % params.ny;
-            int x_e = (ii + 1) % params.nx;
-            int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
-            int x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
-            int ynx = y_n * params.nx;
-            int ysx = y_s * params.nx;
+                    int pos= iii + jjj*params.nx;
+                    int jx = jjj * params.nx;
 
-            /* propagate densities from neighbouring cells, following
-            ** appropriate directions of travel and writing into
-            ** scratch space grid */
-            int pos_set=pos/SIMDLEN; int pos_ind=pos%SIMDLEN;
-            (*cells)[pos_set].speed[0][pos_ind]      = (*tmp_cells)[pos_set].speed[0][pos_ind]; /* central cell, no movement */
-            int tmp_pos=x_e + jx; int set=tmp_pos/SIMDLEN; int ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[1][ind] = (*tmp_cells)[pos_set].speed[1][pos_ind]; /* east */
-            tmp_pos=ii + ynx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[2][ind] = (*tmp_cells)[pos_set].speed[2][pos_ind]; /* north */
-            tmp_pos=x_w + jx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[3][ind] = (*tmp_cells)[pos_set].speed[3][pos_ind]; /* west */
-            tmp_pos=ii  + ysx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[4][ind] = (*tmp_cells)[pos_set].speed[4][pos_ind]; /* south */
-            tmp_pos=x_e + ynx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[5][ind] = (*tmp_cells)[pos_set].speed[5][pos_ind]; /* north-east */
-            tmp_pos=x_w + ynx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[6][ind] = (*tmp_cells)[pos_set].speed[6][pos_ind]; /* north-west */
-            tmp_pos=x_w + ysx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[7][ind] = (*tmp_cells)[pos_set].speed[7][pos_ind]; /* south-west */
-            tmp_pos=x_e + ysx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
-            (*cells)[set].speed[8][ind] = (*tmp_cells)[pos_set].speed[8][pos_ind]; /* south-east */
+                    /* determine indices of axis-direction neighbours
+                    ** respecting periodic boundary conditions (wrap around) */
+                    int y_n = (jjj + 1) % params.ny;
+                    int x_e = (iii + 1) % params.nx;
+                    int y_s = (jjj == 0) ? (params.ny - 1) : (jjj - 1);
+                    int x_w = (iii == 0) ? (params.nx - 1) : (iii - 1);
+                    int ynx = y_n * params.nx;
+                    int ysx = y_s * params.nx;
+                    /* propagate densities from neighbouring cells, following
+                    ** appropriate directions of travel and writing into
+                    ** scratch space grid */
+                    int pos_set=pos/SIMDLEN; int pos_ind=pos%SIMDLEN;
+                    (*cells)[pos_set].speed[0][pos_ind ]      = (*tmp_cells)[pos_set].speed[0][pos_ind]; /* central cell, no movement */
+                    int tmp_pos=x_e + jx; int set=tmp_pos/SIMDLEN; int ind=tmp_pos%SIMDLEN;
+                    (*cells)[set].speed[1][ind ] = (*tmp_cells)[pos_set].speed[1][pos_ind]; /* east */
+                    tmp_pos=iii + ynx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+                    (*cells)[set].speed[2][ind] = (*tmp_cells)[pos_set].speed[2][pos_ind]; /* north */
+
+                    tmp_pos=x_w + jx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+                    (*cells)[set].speed[3][ind ] = (*tmp_cells)[pos_set].speed[3][pos_ind]; /* west */
+                    tmp_pos=iii  + ysx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+                    (*cells)[set].speed[4][ind] = (*tmp_cells)[pos_set].speed[4][pos_ind]; /* south */
+                    tmp_pos=x_e + ynx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+                    (*cells)[set].speed[5][ind] = (*tmp_cells)[pos_set].speed[5][pos_ind]; /* north-east */
+                    tmp_pos=x_w + ynx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+                    (*cells)[set].speed[6][ind] = (*tmp_cells)[pos_set].speed[6][pos_ind]; /* north-west */
+                    tmp_pos=x_w + ysx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+                    (*cells)[set].speed[7][ind] = (*tmp_cells)[pos_set].speed[7][pos_ind]; /* south-west */
+                    tmp_pos=x_e + ysx; set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+                    (*cells)[set].speed[8][ind] = (*tmp_cells)[pos_set].speed[8][pos_ind]; /* south-east */
+                }
+            }
         }
     }
     return EXIT_SUCCESS;
 }
+
+
 
 
 /*
