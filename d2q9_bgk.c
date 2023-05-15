@@ -4,7 +4,7 @@
 #include <assert.h>
 /*zxx test-5.8*/
 /* The main processes in one step */
-int collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles);
+int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles);
 int streaming_boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets);
 int obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles);
 int boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets);
@@ -24,8 +24,8 @@ int timestep(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, flo
       }
     }
   printf("total:%d， obstacle:%d\n", params.nx*params.ny,obstacle_num);*/
-    collision(params, cells, tmp_cells, obstacles);
-    obstacle(params, cells, tmp_cells, obstacles);
+  collision_obstacle(params, cells, tmp_cells, obstacles);
+//    obstacle(params, cells, tmp_cells, obstacles);
     streaming_boundary(params, cells, tmp_cells, inlets);
 //    boundary(params, cells, tmp_cells, inlets);
     /*for(int i=0;i<NSPEEDS;i++){
@@ -43,13 +43,14 @@ const float w0 = 4.f / 9.f;   /* weighting factor */
 const float w1 = 1.f / 9.f;   /* weighting factor */
 const float w2 = 1.f / 36.f;  /* weighting factor */
 
-int collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles) {
+int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles) {
     /* loop over the cells in the grid
     ** the collision step is called before
     ** the streaming step and so values of interest
     ** are in the scratch-space grid */
     const __m256 zero_vec=_mm256_setzero_ps();
     /*const __m256 one_vec=_mm256_set1_ps(1.f);*/
+    __m256i one_int_vec=_mm256_set1_epi32(1);
     const __m256 half_vec=_mm256_set1_ps(0.5f);
     const __m256 three_vec=_mm256_set1_ps(3.f);
     /*const __m256 c_sq_vec=_mm256_set1_ps(c_sq);*/
@@ -72,8 +73,8 @@ int collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, in
             printf("obs=%d",obstacles[pos]);
             printf("tmp[%d]=%d\n",i,tmp[i]);
         } */
-            __m256i obstacle_mask=_mm256_xor_si256(_mm256_load_si256((__m256i *)&obstacles[pos]),_mm256_set1_epi32(1));
-            if (!_mm256_testz_si256(obstacle_mask,obstacle_mask)){
+            __m256i obstacle_mask_inv=_mm256_xor_si256(_mm256_load_si256((__m256i *)&obstacles[pos]),one_int_vec);
+            if (!_mm256_testz_si256(obstacle_mask_inv,obstacle_mask_inv)){
                 __m256 data[NSPEEDS]={_mm256_load_ps(&(*cells)[set].speed[0][ind]),_mm256_load_ps(&(*cells)[set].speed[1][ind]),_mm256_load_ps(&(*cells)[set].speed[2][ind]),
                                       _mm256_load_ps(&(*cells)[set].speed[3][ind]),_mm256_load_ps(&(*cells)[set].speed[4][ind]),
                                       _mm256_load_ps(&(*cells)[set].speed[5][ind]),_mm256_load_ps(&(*cells)[set].speed[6][ind]),
@@ -217,20 +218,32 @@ int collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, in
                 /* simd */
                 /* printf("%f\n",(*cells)[pos].speeds[1]); */
                 __m256 omega_vec=_mm256_set1_ps(params.omega);
-                _mm256_store_ps(&(*tmp_cells)[set].speed[0][ind],_mm256_add_ps(data[0],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[0],data[0]))));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[1][ind],_mm256_add_ps(data[1],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[1],data[1]))));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[2][ind],_mm256_add_ps(data[2],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[2],data[2]))));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[3][ind],_mm256_add_ps(data[3],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[3],data[3]))));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[4][ind],_mm256_add_ps(data[4],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[4],data[4]))));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[5][ind],_mm256_add_ps(data[5],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[5],data[5]))));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[6][ind],_mm256_add_ps(data[6],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[6],data[6]))));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[7][ind],_mm256_add_ps(data[7],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[7],data[7]))));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[8][ind],_mm256_add_ps(data[8],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[8],data[8]))));
+                __m256 obstacle_mask=_mm256_castsi256_ps(_mm256_cmpeq_epi32(obstacle_mask_inv, one_int_vec));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[0][ind],_mm256_blendv_ps(data[0],_mm256_add_ps(data[0],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[0],data[0]))),obstacle_mask));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[1][ind],_mm256_blendv_ps(data[3],_mm256_add_ps(data[1],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[1],data[1]))),obstacle_mask));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[2][ind],_mm256_blendv_ps(data[4],_mm256_add_ps(data[2],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[2],data[2]))),obstacle_mask));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[3][ind],_mm256_blendv_ps(data[1],_mm256_add_ps(data[3],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[3],data[3]))),obstacle_mask));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[4][ind],_mm256_blendv_ps(data[2],_mm256_add_ps(data[4],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[4],data[4]))),obstacle_mask));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[5][ind],_mm256_blendv_ps(data[7],_mm256_add_ps(data[5],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[5],data[5]))),obstacle_mask));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[6][ind],_mm256_blendv_ps(data[8],_mm256_add_ps(data[6],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[6],data[6]))),obstacle_mask));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[7][ind],_mm256_blendv_ps(data[5],_mm256_add_ps(data[7],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[7],data[7]))),obstacle_mask));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[8][ind],_mm256_blendv_ps(data[6],_mm256_add_ps(data[8],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[8],data[8]))),obstacle_mask));
+
                 /* relaxation step */
                 /*for (int kk = 0; kk < NSPEEDS; kk++)
                 {
                   (*tmp_cells)[pos].speeds[kk] = (*cells)[pos].speeds[kk]+ params.omega * (d_equ[kk] - (*cells)[pos].speeds[kk]);
                 }*/
+            } else{
+              _mm256_store_ps(&(*tmp_cells)[set].speed[0][ind],_mm256_load_ps(&(*cells)[set].speed[0][ind]));
+              _mm256_store_ps(&(*tmp_cells)[set].speed[1][ind],_mm256_load_ps(&(*cells)[set].speed[3][ind]));
+              _mm256_store_ps(&(*tmp_cells)[set].speed[2][ind],_mm256_load_ps(&(*cells)[set].speed[4][ind]));
+              _mm256_store_ps(&(*tmp_cells)[set].speed[3][ind],_mm256_load_ps(&(*cells)[set].speed[1][ind]));
+              _mm256_store_ps(&(*tmp_cells)[set].speed[4][ind],_mm256_load_ps(&(*cells)[set].speed[2][ind]));
+              _mm256_store_ps(&(*tmp_cells)[set].speed[5][ind],_mm256_load_ps(&(*cells)[set].speed[7][ind]));
+              _mm256_store_ps(&(*tmp_cells)[set].speed[6][ind],_mm256_load_ps(&(*cells)[set].speed[8][ind]));
+              _mm256_store_ps(&(*tmp_cells)[set].speed[7][ind],_mm256_load_ps(&(*cells)[set].speed[5][ind]));
+              _mm256_store_ps(&(*tmp_cells)[set].speed[8][ind],_mm256_load_ps(&(*cells)[set].speed[6][ind]));
             }
         }
     }
