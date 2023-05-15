@@ -60,6 +60,7 @@ int collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, in
 #pragma omp parallel for schedule(static)
     for (int jj = 0; jj < params.ny; jj++)
     {
+      #pragma omp simd
         for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
         {
             const int pos = ii + jj*params.nx;
@@ -244,6 +245,7 @@ int obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int
 #pragma omp parallel for schedule(dynamic)
     for (int jj = 0; jj < params.ny; jj++)
     {
+      #pragma omp simd
         for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
         {
             int pos= ii + jj*params.nx;
@@ -333,6 +335,7 @@ int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
 #pragma omp parallel for schedule(static)
     for (int jj = 0; jj < params.ny; jj++)
     {
+      #pragma omp simd
         for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
         {
           int pos= ii + jj*params.nx;
@@ -380,13 +383,13 @@ int boundary(const t_param params, t_speed_t** cells,  t_speed_t** tmp_cells, fl
     const float cst2 =1.0/6.0;
     const float cst3 =1.0/2.0;
 
-    int ii, jj;
+    int jj;
 
 
     // top wall (bounce)
     jj = params.ny -1;
-#pragma omp parallel for schedule(static)
-    for(ii = 0; ii < params.nx; ii+=SIMDLEN){
+#pragma omp parallel for simd schedule(static)
+    for(int ii = 0; ii < params.nx; ii+=SIMDLEN){
         const int pos= ii + jj*params.nx;
         int set=pos/SIMDLEN;
         int ind=pos%SIMDLEN;
@@ -405,8 +408,8 @@ int boundary(const t_param params, t_speed_t** cells,  t_speed_t** tmp_cells, fl
 
     // left wall (inlet)
     /*ii = 0;*/
-  ii = params.nx-1;
-#pragma omp parallel for schedule(static)
+  int ii = params.nx-1;
+#pragma omp parallel for simd schedule(static)
     for(jj = 0; jj < params.ny; jj++){
         const int pos= jj*params.nx;
         const int set=pos/SIMDLEN;
