@@ -82,12 +82,8 @@ int collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, in
 
                 /* compute local density total */
                 /* float local_density = 0.f; */
-                __m256 local_density_vec = _mm256_setzero_ps();
-                for (int kk = 0; kk < NSPEEDS; kk++)
-                {
-                    local_density_vec = _mm256_add_ps(local_density_vec, data[kk]);
-                }
-
+                __m256 local_density_vec =_mm256_add_ps(_mm256_add_ps(_mm256_add_ps(data[0],data[1]),_mm256_add_ps(data[2],data[3])),
+                            _mm256_add_ps(_mm256_add_ps(data[4],data[5]),_mm256_add_ps(data[8],_mm256_add_ps(data[6],data[7]))));
                 /* compute x velocity component */
                 /* float u_x = ((*cells)[pos][1]
                               + (*cells)[pos][5]
@@ -220,14 +216,16 @@ int collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, in
 
                 /* simd */
                 /* printf("%f\n",(*cells)[pos].speeds[1]); */
-                for (int kk = 0; kk < NSPEEDS; kk++)
-                {
-                    _mm256_store_ps(&(*tmp_cells)[set].speed[kk][ind],
-                                    _mm256_add_ps(data[kk],
-                                                  _mm256_mul_ps(
-                                                          _mm256_set1_ps(params.omega),
-                                                          _mm256_sub_ps(d_equ[kk],data[kk]))));
-                }
+                __m256 omega_vec=_mm256_set1_ps(params.omega);
+                _mm256_store_ps(&(*tmp_cells)[set].speed[0][ind],_mm256_add_ps(data[0],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[0],data[0]))));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[1][ind],_mm256_add_ps(data[1],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[1],data[1]))));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[2][ind],_mm256_add_ps(data[2],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[2],data[2]))));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[3][ind],_mm256_add_ps(data[3],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[3],data[3]))));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[4][ind],_mm256_add_ps(data[4],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[4],data[4]))));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[5][ind],_mm256_add_ps(data[5],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[5],data[5]))));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[6][ind],_mm256_add_ps(data[6],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[6],data[6]))));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[7][ind],_mm256_add_ps(data[7],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[7],data[7]))));
+                _mm256_store_ps(&(*tmp_cells)[set].speed[8][ind],_mm256_add_ps(data[8],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[8],data[8]))));
                 /* relaxation step */
                 /*for (int kk = 0; kk < NSPEEDS; kk++)
                 {
@@ -310,7 +308,6 @@ static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir
     float a2=10.2;
     tmp=_mm256_loadu_ps(a1);
     a=_mm256_set1_ps(a2);
-
     __m256 test=_mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x80),_mm256_set_epi32(6,5,4,3,2,1,0,7));
     _mm256_storeu_ps(b,test);*/
     _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],
