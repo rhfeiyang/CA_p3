@@ -32,3 +32,6 @@ plot:
 clean:
 	rm -f $(EXE)
 	rm -f *.dat
+
+perf:
+	perf stat -e cache-misses make evaluate

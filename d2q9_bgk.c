@@ -324,27 +324,26 @@ int obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int
     return EXIT_SUCCESS;
 }
 
-static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir,int pos_set,int x_w, int jx,int ii,int ysx,int x_e,int ynx){
-  int tmp_pos,set,ind,neighbour_set;
-  if(dir==1) { tmp_pos = x_w + jx; neighbour_set = pos_set; }
+static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir,int pos_set,int neighbour_set,int x_w, int jx,int ii,int ysx,int x_e,int ynx){
+  int tmp_pos,set,ind;
+  if(dir==1) { tmp_pos = x_w + jx;}
   else if (dir==2) tmp_pos=ii  + ysx;
-  else if (dir==3) { tmp_pos = x_e + jx; neighbour_set = pos_set; }
+  else if (dir==3) { tmp_pos = x_e + jx; }
   else if (dir==4) tmp_pos=ii  + ynx;
-  else if (dir==5) { tmp_pos = x_w + ysx; neighbour_set = (ii  + ysx)/SIMDLEN; }
-  else if (dir==6) { tmp_pos = x_e + ysx; neighbour_set = (ii  + ysx)/SIMDLEN; }
-  else if (dir==7) { tmp_pos = x_e + ynx; neighbour_set = (ii  + ynx)/SIMDLEN; }
-  else if (dir==8) { tmp_pos = x_w + ynx; neighbour_set = (ii  + ynx)/SIMDLEN; }
+  else if (dir==5) { tmp_pos = x_w + ysx; }
+  else if (dir==6) { tmp_pos = x_e + ysx; }
+  else if (dir==7) { tmp_pos = x_e + ynx; }
+  else if (dir==8) { tmp_pos = x_w + ynx; }
 
   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+//  printf("pos_x: %d, pos_y:%d ,dir: %d ,temp_x: %d, temp_y:%d\n",pos_set*8%4096,pos_set*8/4096,dir,tmp_pos%4096,tmp_pos/4096);
   if(dir==2 || dir==4){
     _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],
                     _mm256_load_ps(&(*tmp_cells)[set].speed[dir][0]));
   }
   else if(dir==1 || dir==5 || dir==8){
-//    printf("ii:%d,jx:%d set %d, dir %d\n",ii,jx,pos_set-set,dir);
     __m256 tmp=_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[dir][0]);
     __m256 a= _mm256_set1_ps((*tmp_cells)[set].speed[dir][ind]);
-
     /*float a1[8]={1,2,3,4,5,6,7,8};
     float b[8]={0};
     float a2=10.2;
@@ -353,67 +352,15 @@ static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir
 
     __m256 test=_mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x80),_mm256_set_epi32(6,5,4,3,2,1,0,7));
     _mm256_storeu_ps(b,test);*/
-
-    if(abs(a[0]-tmp[2])>0.01)
-      printf("0\n");
     _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],
                     _mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x80),_mm256_set_epi32(6,5,4,3,2,1,0,7)));
-
   }
   else{
-//    printf("ii:%d,jx:%d set %d, dir %d\n",ii,jx,pos_set-set,dir);
     __m256 tmp=_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[dir][0]);
     __m256 a= _mm256_set1_ps((*tmp_cells)[set].speed[dir][ind]);
-
-    /*float a1[8]={1,2,3,4,5,6,7,8};
-    float a2=10.2;
-    float b[8]={0};
-    tmp=_mm256_loadu_ps(a1);
-    a=_mm256_set1_ps(a2);
-    __m256 test=_mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x01),_mm256_set_epi32(0,7,6,5,4,3,2,1));
-    _mm256_storeu_ps(b,test);*/
-    if(abs(a[0]-tmp[2])>0.01)
-      printf("1\n");
     _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],
                     _mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x01),_mm256_set_epi32(0,7,6,5,4,3,2,1)));
   }
-}
-int streaming_backup(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
-  /* loop over _all_ cells */
-  printf("%f\n",(*cells)[0].speed[5][0]);
-#pragma omp parallel for schedule(static) collapse(2)
-  for (int jj = 0; jj < params.ny; jj++)
-  {
-    for (int ii = 0; ii < params.nx; ii++)
-    {
-      int pos= ii + jj*params.nx;
-      int jx = jj * params.nx;
-
-      /* determine indices of axis-direction neighbours
-      ** respecting periodic boundary conditions (wrap around) */
-      int y_n = (jj + 1) % params.ny;
-      int x_e = (ii + 1) % params.nx;
-      int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
-      int x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
-      int ynx = y_n*params.nx;
-      int ysx = y_s*params.nx;
-      /* propagate densities from neighbouring cells, following
-      ** appropriate directions of travel and writing into
-      ** scratch space grid */
-      int pos_set=pos/SIMDLEN; int pos_ind=pos%SIMDLEN;
-      (*cells)[pos_set].speed[0][pos_ind ]      = (*tmp_cells)[pos_set].speed[0][pos_ind]; /* central cell, no movement */
-
-      int tmp_pos=x_w + jx;int set=tmp_pos/SIMDLEN;int ind=tmp_pos%SIMDLEN;   (*cells)[pos_set].speed[1][pos_ind] = (*tmp_cells)[set].speed[1][ind]; /* east */
-      tmp_pos=    ii  + ysx;   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;(*cells)[pos_set].speed[2][pos_ind] = (*tmp_cells)[set].speed[2][ind]; /* north */
-      tmp_pos=    x_e + jx ;   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;(*cells)[pos_set].speed[3][pos_ind] = (*tmp_cells)[set].speed[3][ind]; /* west */
-      tmp_pos=    ii  + ynx;   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;(*cells)[pos_set].speed[4][pos_ind] = (*tmp_cells)[set].speed[4][ind]; /* south */
-      tmp_pos=    x_w + ysx;   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;(*cells)[pos_set].speed[5][pos_ind] = (*tmp_cells)[set].speed[5][ind]; /* north-east */
-      tmp_pos=    x_e + ysx;   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;(*cells)[pos_set].speed[6][pos_ind] = (*tmp_cells)[set].speed[6][ind]; /* north-west */
-      tmp_pos=    x_e + ynx;   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;(*cells)[pos_set].speed[7][pos_ind] = (*tmp_cells)[set].speed[7][ind]; /* south-west */
-      tmp_pos=    x_w + ynx;   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;(*cells)[pos_set].speed[8][pos_ind] = (*tmp_cells)[set].speed[8][ind]; /* south-east */
-    }
-  }
-  return EXIT_SUCCESS;
 }
 
 /*
@@ -433,7 +380,7 @@ int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
           /* determine indices of axis-direction neighbours
           ** respecting periodic boundary conditions (wrap around) */
           int y_n = (jj + 1) % params.ny;
-          int x_e = (ii + 1) % params.nx;
+          int x_e = (ii + SIMDLEN) % params.nx;
           int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
           int x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
           int ynx = y_n*params.nx;
@@ -443,64 +390,22 @@ int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
           ** scratch space grid */
           int pos_set=pos/SIMDLEN;
           _mm256_store_ps(&(*cells)[pos_set].speed[0][0],_mm256_load_ps(&(*tmp_cells)[pos_set].speed[0][0])); /* central cell, no movement */
-          speed_update(cells,tmp_cells,1,pos_set,x_w,jx,ii,ysx,x_e,ynx);
-          speed_update(cells,tmp_cells,2,pos_set,x_w,jx,ii,ysx,x_e,ynx);
-          speed_update(cells,tmp_cells,3,pos_set,x_w,jx,ii,ysx,x_e,ynx);
-          speed_update(cells,tmp_cells,4,pos_set,x_w,jx,ii,ysx,x_e,ynx);
-          speed_update(cells,tmp_cells,5,pos_set,x_w,jx,ii,ysx,x_e,ynx);
-          speed_update(cells,tmp_cells,6,pos_set,x_w,jx,ii,ysx,x_e,ynx);
-          speed_update(cells,tmp_cells,7,pos_set,x_w,jx,ii,ysx,x_e,ynx);
-          speed_update(cells,tmp_cells,8,pos_set,x_w,jx,ii,ysx,x_e,ynx);
-/*          if(ii==0){
-            speed_update(1,cells,tmp_cells,2,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,3,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,4,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,6,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,7,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
+          int up_set=(ynx+ii)/SIMDLEN;
+          int down_set=(ysx+ii)/SIMDLEN;
+          speed_update(cells,tmp_cells,1,pos_set,pos_set,x_w,jx,ii,ysx,x_e,ynx);
+          speed_update(cells,tmp_cells,3,pos_set,pos_set,x_w,jx,ii,ysx,x_e,ynx);
 
-            speed_update(0,cells,tmp_cells,1,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(0,cells,tmp_cells,5,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(0,cells,tmp_cells,8,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            for(x_w=0; x_w<SIMDLEN-1; x_w++){
-              pos_ind++;x_e++;
-              speed_update(0,cells,tmp_cells,1,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-              speed_update(0,cells,tmp_cells,5,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-              speed_update(0,cells,tmp_cells,8,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            }
-          }
-          else if(ii==params.nx-SIMDLEN){
-            speed_update(1,cells,tmp_cells,1,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,2,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,5,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,4,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,8,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
+          speed_update(cells,tmp_cells,4,pos_set,up_set,x_w,jx,ii,ysx,x_e,ynx);
+          speed_update(cells,tmp_cells,7,pos_set,up_set,x_w,jx,ii,ysx,x_e,ynx);
+          speed_update(cells,tmp_cells,8,pos_set,up_set,x_w,jx,ii,ysx,x_e,ynx);
 
-            for(int k=0; k<SIMDLEN-1; k++,pos_ind++,x_w++,x_e++){
-              speed_update(0,cells,tmp_cells,3,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-              speed_update(0,cells,tmp_cells,6,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-              speed_update(0,cells,tmp_cells,7,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            }
-            x_e=0;
-            speed_update(0,cells,tmp_cells,3,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(0,cells,tmp_cells,6,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(0,cells,tmp_cells,7,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-          }
-          else{*/
-            /*speed_update(1,cells,tmp_cells,1,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,2,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,3,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,4,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,5,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,6,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,7,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);
-            speed_update(1,cells,tmp_cells,8,pos_set,pos_ind,x_w,jx,ii,ysx,x_e,ynx);*/
-/*          }*/
+          speed_update(cells,tmp_cells,2,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx);
+          speed_update(cells,tmp_cells,5,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx);
+          speed_update(cells,tmp_cells,6,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx);
         }
     }
     return EXIT_SUCCESS;
 }
-
-
 
 
 /*
