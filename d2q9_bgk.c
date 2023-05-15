@@ -82,8 +82,8 @@ int collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, in
 
                 /* compute local density total */
                 /* float local_density = 0.f; */
-                __m256 local_density_vec =_mm256_add_ps(_mm256_add_ps(_mm256_add_ps(data[0],data[1]),_mm256_add_ps(data[2],data[3])),
-                            _mm256_add_ps(_mm256_add_ps(data[4],data[5]),_mm256_add_ps(data[8],_mm256_add_ps(data[6],data[7]))));
+                __m256 local_density_vec = _mm256_add_ps( _mm256_add_ps(_mm256_add_ps(_mm256_add_ps(data[0],data[1]),_mm256_add_ps(data[2],data[3])),
+                            _mm256_add_ps(_mm256_add_ps(data[4],data[5]),_mm256_add_ps(data[6],data[7]))),data[8]);
                 /* compute x velocity component */
                 /* float u_x = ((*cells)[pos][1]
                               + (*cells)[pos][5]
