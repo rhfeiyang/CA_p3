@@ -405,6 +405,7 @@ int boundary(const t_param params, t_speed_t** cells,  t_speed_t** tmp_cells, fl
 
     // left wall (inlet)
     /*ii = 0;*/
+  ii = params.nx-1;
 #pragma omp parallel for schedule(static)
     for(jj = 0; jj < params.ny; jj++){
         const int pos= jj*params.nx;
@@ -428,21 +429,39 @@ int boundary(const t_param params, t_speed_t** cells,  t_speed_t** tmp_cells, fl
         (*cells)[set].speed[8][ind] = (*cells)[set].speed[6][ind]
                                       + cst3*(index_cell)
                                       + cst2*local_inlet;
+      // right wall (outlet)
+      const int row = jj * params.nx;
+      int pos1= ii + row;
+      int pos2= ii - 1 + row;
+      (*cells)[pos1/SIMDLEN].speed[0][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[0][pos2%SIMDLEN];
+      (*cells)[pos1/SIMDLEN].speed[1][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[1][pos2%SIMDLEN];
+      (*cells)[pos1/SIMDLEN].speed[2][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[2][pos2%SIMDLEN];
+      (*cells)[pos1/SIMDLEN].speed[3][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[3][pos2%SIMDLEN];
+      (*cells)[pos1/SIMDLEN].speed[4][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[4][pos2%SIMDLEN];
+      (*cells)[pos1/SIMDLEN].speed[5][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[5][pos2%SIMDLEN];
+      (*cells)[pos1/SIMDLEN].speed[6][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[6][pos2%SIMDLEN];
+      (*cells)[pos1/SIMDLEN].speed[7][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[7][pos2%SIMDLEN];
+      (*cells)[pos1/SIMDLEN].speed[8][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[8][pos2%SIMDLEN];
 
     }
-
-    // right wall (outlet)
+    /*// right wall (outlet)
     ii = params.nx-1;
-#pragma omp parallel for schedule(static) collapse(2)
+#pragma omp parallel for schedule(static)
     for (jj = 0; jj < params.ny; jj++) {
-        /*simd*/
-        for (int kk = 0; kk < NSPEEDS; kk++) {
-            const int row = jj * params.nx;
-            int pos1= ii + row;
-            int pos2= ii - 1 + row;
-            (*cells)[pos1/SIMDLEN].speed[kk][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[kk][pos2%SIMDLEN];
-        }
-    }
+        *//*simd*//*
+          const int row = jj * params.nx;
+          int pos1= ii + row;
+          int pos2= ii - 1 + row;
+          (*cells)[pos1/SIMDLEN].speed[0][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[0][pos2%SIMDLEN];
+          (*cells)[pos1/SIMDLEN].speed[1][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[1][pos2%SIMDLEN];
+          (*cells)[pos1/SIMDLEN].speed[2][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[2][pos2%SIMDLEN];
+          (*cells)[pos1/SIMDLEN].speed[3][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[3][pos2%SIMDLEN];
+          (*cells)[pos1/SIMDLEN].speed[4][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[4][pos2%SIMDLEN];
+          (*cells)[pos1/SIMDLEN].speed[5][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[5][pos2%SIMDLEN];
+          (*cells)[pos1/SIMDLEN].speed[6][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[6][pos2%SIMDLEN];
+          (*cells)[pos1/SIMDLEN].speed[7][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[7][pos2%SIMDLEN];
+          (*cells)[pos1/SIMDLEN].speed[8][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[8][pos2%SIMDLEN];
+    }*/
     return EXIT_SUCCESS;
 }
 
