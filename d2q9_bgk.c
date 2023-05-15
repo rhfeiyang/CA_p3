@@ -24,8 +24,9 @@ int timestep(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, flo
       }
     }
   printf("total:%d， obstacle:%d\n", params.nx*params.ny,obstacle_num);*/
+//    omp_set_num_threads(8);
+  /*printf("threads:%d\n",omp_get_num_procs());*/
     collision(params, cells, tmp_cells, obstacles);
-
     obstacle(params, cells, tmp_cells, obstacles);
     streaming(params, cells, tmp_cells);
     boundary(params, cells, tmp_cells, inlets);
@@ -367,46 +368,48 @@ static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir
 ** Particles flow to the corresponding cell according to their speed direaction.
 */
 int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
-    /* loop over _all_ cells */
+  /* loop over _all_ cells */
 //  printf("%f\n",(*cells)[0].speed[5][0]);
 //  omp_set_num_threads(8);
-  const __m256i left_mask=_mm256_set_epi32(6,5,4,3,2,1,0,7);
-  const __m256i right_mask=_mm256_set_epi32(0,7,6,5,4,3,2,1);
+  const __m256i left_mask = _mm256_set_epi32(6, 5, 4, 3, 2, 1, 0, 7);
+  const __m256i right_mask = _mm256_set_epi32(0, 7, 6, 5, 4, 3, 2, 1);
 #pragma omp parallel for schedule(static)
-    for (int jj = 0; jj < params.ny; jj++)
-    {
-        for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
-        {
-          int pos= ii + jj*params.nx;
-          int jx = jj * params.nx;
+  /*cache blocking*/
+  for (int iii = 0; iii < params.nx; iii += BLOCK_SIZE) {
+    for (int jj = 0; jj < params.ny; jj++) {
+      for (int ii = iii; ii < iii + BLOCK_SIZE; ii += SIMDLEN) {
+        int pos = ii + jj * params.nx;
+        int jx = jj * params.nx;
 
-          /* determine indices of axis-direction neighbours
-          ** respecting periodic boundary conditions (wrap around) */
-          int y_n = (jj + 1) % params.ny;
-          int x_e = (ii + SIMDLEN) % params.nx;
-          int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
-          int x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
-          int ynx = y_n*params.nx;
-          int ysx = y_s*params.nx;
-          /* propagate densities from neighbouring cells, following
-          ** appropriate directions of travel and writing into
-          ** scratch space grid */
-          int pos_set=pos/SIMDLEN;
-          _mm256_store_ps(&(*cells)[pos_set].speed[0][0],_mm256_load_ps(&(*tmp_cells)[pos_set].speed[0][0])); /* central cell, no movement */
-          int up_set=(ynx+ii)/SIMDLEN;
-          int down_set=(ysx+ii)/SIMDLEN;
-          speed_update(cells,tmp_cells,1,pos_set,pos_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
-          speed_update(cells,tmp_cells,3,pos_set,pos_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
+        /* determine indices of axis-direction neighbours
+        ** respecting periodic boundary conditions (wrap around) */
+        int y_n = (jj + 1) % params.ny;
+        int x_e = (ii + SIMDLEN) % params.nx;
+        int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
+        int x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
+        int ynx = y_n * params.nx;
+        int ysx = y_s * params.nx;
+        /* propagate densities from neighbouring cells, following
+        ** appropriate directions of travel and writing into
+        ** scratch space grid */
+        int pos_set = pos / SIMDLEN;
+        _mm256_store_ps(&(*cells)[pos_set].speed[0][0],
+                        _mm256_load_ps(&(*tmp_cells)[pos_set].speed[0][0])); /* central cell, no movement */
+        int up_set = (ynx + ii) / SIMDLEN;
+        int down_set = (ysx + ii) / SIMDLEN;
+        speed_update(cells, tmp_cells, 1, pos_set, pos_set, x_w, jx, ii, ysx, x_e, ynx, &left_mask, &right_mask);
+        speed_update(cells, tmp_cells, 3, pos_set, pos_set, x_w, jx, ii, ysx, x_e, ynx, &left_mask, &right_mask);
 
-          speed_update(cells,tmp_cells,4,pos_set,up_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
-          speed_update(cells,tmp_cells,7,pos_set,up_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
-          speed_update(cells,tmp_cells,8,pos_set,up_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
+        speed_update(cells, tmp_cells, 4, pos_set, up_set, x_w, jx, ii, ysx, x_e, ynx, &left_mask, &right_mask);
+        speed_update(cells, tmp_cells, 7, pos_set, up_set, x_w, jx, ii, ysx, x_e, ynx, &left_mask, &right_mask);
+        speed_update(cells, tmp_cells, 8, pos_set, up_set, x_w, jx, ii, ysx, x_e, ynx, &left_mask, &right_mask);
 
-          speed_update(cells,tmp_cells,2,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
-          speed_update(cells,tmp_cells,6,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
-          speed_update(cells,tmp_cells,5,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
-        }
+        speed_update(cells, tmp_cells, 2, pos_set, down_set, x_w, jx, ii, ysx, x_e, ynx, &left_mask, &right_mask);
+        speed_update(cells, tmp_cells, 6, pos_set, down_set, x_w, jx, ii, ysx, x_e, ynx, &left_mask, &right_mask);
+        speed_update(cells, tmp_cells, 5, pos_set, down_set, x_w, jx, ii, ysx, x_e, ynx, &left_mask, &right_mask);
+      }
     }
+  }
     return EXIT_SUCCESS;
 }
 

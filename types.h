@@ -9,8 +9,9 @@
 //#include <sys/resource.h>
 
 #define NSPEEDS         9
-#define NUM_THREADS     28
 #define SIMDLEN        8
+#define BLOCK_SIZE 2*SIMDLEN
+
 typedef struct
 {
     int    ny;            /* no. of cells in y-direction */
