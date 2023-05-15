@@ -324,7 +324,7 @@ int obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int
     return EXIT_SUCCESS;
 }
 
-static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir,int pos_set,int neighbour_set,int x_w, int jx,int ii,int ysx,int x_e,int ynx){
+static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir,int pos_set,int neighbour_set,int x_w, int jx,int ii,int ysx,int x_e,int ynx,const __m256i* left_mask,const __m256i* right_mask){
   int tmp_pos,set,ind;
   if(dir==1) { tmp_pos = x_w + jx;}
   else if (dir==2) tmp_pos=ii  + ysx;
@@ -353,13 +353,13 @@ static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir
     __m256 test=_mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x80),_mm256_set_epi32(6,5,4,3,2,1,0,7));
     _mm256_storeu_ps(b,test);*/
     _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],
-                    _mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x80),_mm256_set_epi32(6,5,4,3,2,1,0,7)));
+                    _mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x80),*left_mask));
   }
   else{
     __m256 tmp=_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[dir][0]);
     __m256 a= _mm256_set1_ps((*tmp_cells)[set].speed[dir][ind]);
     _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],
-                    _mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x01),_mm256_set_epi32(0,7,6,5,4,3,2,1)));
+                    _mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x01),*right_mask));
   }
 }
 
@@ -369,6 +369,9 @@ static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir
 int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
     /* loop over _all_ cells */
 //  printf("%f\n",(*cells)[0].speed[5][0]);
+//  omp_set_num_threads(8);
+  const __m256i left_mask=_mm256_set_epi32(6,5,4,3,2,1,0,7);
+  const __m256i right_mask=_mm256_set_epi32(0,7,6,5,4,3,2,1);
 #pragma omp parallel for schedule(static)
     for (int jj = 0; jj < params.ny; jj++)
     {
@@ -392,16 +395,16 @@ int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
           _mm256_store_ps(&(*cells)[pos_set].speed[0][0],_mm256_load_ps(&(*tmp_cells)[pos_set].speed[0][0])); /* central cell, no movement */
           int up_set=(ynx+ii)/SIMDLEN;
           int down_set=(ysx+ii)/SIMDLEN;
-          speed_update(cells,tmp_cells,1,pos_set,pos_set,x_w,jx,ii,ysx,x_e,ynx);
-          speed_update(cells,tmp_cells,3,pos_set,pos_set,x_w,jx,ii,ysx,x_e,ynx);
+          speed_update(cells,tmp_cells,1,pos_set,pos_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
+          speed_update(cells,tmp_cells,3,pos_set,pos_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
 
-          speed_update(cells,tmp_cells,4,pos_set,up_set,x_w,jx,ii,ysx,x_e,ynx);
-          speed_update(cells,tmp_cells,7,pos_set,up_set,x_w,jx,ii,ysx,x_e,ynx);
-          speed_update(cells,tmp_cells,8,pos_set,up_set,x_w,jx,ii,ysx,x_e,ynx);
+          speed_update(cells,tmp_cells,4,pos_set,up_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
+          speed_update(cells,tmp_cells,7,pos_set,up_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
+          speed_update(cells,tmp_cells,8,pos_set,up_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
 
-          speed_update(cells,tmp_cells,2,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx);
-          speed_update(cells,tmp_cells,5,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx);
-          speed_update(cells,tmp_cells,6,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx);
+          speed_update(cells,tmp_cells,2,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
+          speed_update(cells,tmp_cells,6,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
+          speed_update(cells,tmp_cells,5,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
         }
     }
     return EXIT_SUCCESS;
