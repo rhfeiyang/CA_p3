@@ -36,9 +36,8 @@ int main(int argc, char* argv[])
     struct timeval timstr;                   /* structure to hold elapsed time */
     double total_time, init_time, comp_time; /* floating point numbers to calculate elapsed wallclock time */
     char buf[128];                /* a string buffer for specific filename */
-
-
-    omp_set_num_threads(omp_get_num_procs()/2);
+    int procs=omp_get_num_procs();
+    if(procs>4) omp_set_num_threads(procs/2);
     /* parse the command line */
     if (argc < 3)
     {
