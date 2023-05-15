@@ -5,7 +5,7 @@
 /*zxx test-5.8*/
 /* The main processes in one step */
 int collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles);
-int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells);
+int streaming_boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets);
 int obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles);
 int boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets);
 
@@ -25,10 +25,9 @@ int timestep(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, flo
     }
   printf("total:%d， obstacle:%d\n", params.nx*params.ny,obstacle_num);*/
     collision(params, cells, tmp_cells, obstacles);
-
     obstacle(params, cells, tmp_cells, obstacles);
-    streaming(params, cells, tmp_cells);
-    boundary(params, cells, tmp_cells, inlets);
+    streaming_boundary(params, cells, tmp_cells, inlets);
+//    boundary(params, cells, tmp_cells, inlets);
     /*for(int i=0;i<NSPEEDS;i++){
       printf("tmp(*cells)[%d].speeds[0]=%f\n",i,(*tmp_cells)[i][0]);
     }*/
@@ -240,7 +239,6 @@ int collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, in
 
 
 int obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles) {
-
     /* loop over the cells in the grid */
 #pragma omp parallel for schedule(dynamic)
     for (int jj = 0; jj < params.ny; jj++)
@@ -296,37 +294,42 @@ static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir
   else if (dir==7) { tmp_pos = x_e + ynx; }
   else if (dir==8) { tmp_pos = x_w + ynx; }
 
+  int source_dir=dir;
   set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
 //  printf("pos_x: %d, pos_y:%d ,dir: %d ,temp_x: %d, temp_y:%d\n",pos_set*8%4096,pos_set*8/4096,dir,tmp_pos%4096,tmp_pos/4096);
   if(dir==2 || dir==4){
-    _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],
-                    _mm256_load_ps(&(*tmp_cells)[set].speed[dir][0]));
+    if(ynx==0 && dir==4) { source_dir = 2;set=pos_set; }
+    else if(jx==0 && dir==2) { source_dir = 4; set=pos_set; }
+
+    _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],_mm256_load_ps(&(*tmp_cells)[set].speed[source_dir][0]));
   }
   else if(dir==1 || dir==5 || dir==8){
-    __m256 tmp=_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[dir][0]);
-    __m256 a= _mm256_set1_ps((*tmp_cells)[set].speed[dir][ind]);
-    /*float a1[8]={1,2,3,4,5,6,7,8};
-    float b[8]={0};
-    float a2=10.2;
-    tmp=_mm256_loadu_ps(a1);
-    a=_mm256_set1_ps(a2);
-    __m256 test=_mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x80),_mm256_set_epi32(6,5,4,3,2,1,0,7));
-    _mm256_storeu_ps(b,test);*/
-    _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],
-                    _mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x80),*left_mask));
+    if(ynx==0 && dir==8) { source_dir = 6; neighbour_set=pos_set; _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[source_dir][0]));}
+    else if(jx==0 && dir==5) { source_dir = 7; neighbour_set=pos_set; _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[source_dir][0]));}
+    else{
+      __m256 tmp=_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[source_dir][0]);
+      __m256 a= _mm256_set1_ps((*tmp_cells)[set].speed[dir][ind]);
+      _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],
+                      _mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x80),*left_mask));
+    }
   }
   else{
-    __m256 tmp=_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[dir][0]);
-    __m256 a= _mm256_set1_ps((*tmp_cells)[set].speed[dir][ind]);
-    _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],
-                    _mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x01),*right_mask));
+    /*3 6 7*/
+    if(ynx==0 && dir==7) { source_dir = 5;neighbour_set=pos_set; _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[source_dir][0]));}
+    else if(jx==0 && dir==6) { source_dir = 8; neighbour_set=pos_set; _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[source_dir][0]));}
+    else{
+      __m256 tmp=_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[source_dir][0]);
+      __m256 a= _mm256_set1_ps((*tmp_cells)[set].speed[dir][ind]);
+      _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],
+                      _mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x01),*right_mask));
+    }
   }
 }
 
 /*
 ** Particles flow to the corresponding cell according to their speed direaction.
 */
-int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
+int streaming_boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets) {
     /* loop over _all_ cells */
 //  printf("%f\n",(*cells)[0].speed[5][0]);
 //  omp_set_num_threads(8);
@@ -366,6 +369,41 @@ int streaming(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells) {
           speed_update(cells,tmp_cells,2,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
           speed_update(cells,tmp_cells,6,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
           speed_update(cells,tmp_cells,5,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
+          /*left wall*/
+          if(ii==0){
+            const float cst1 =2.0/3.0;
+            const float cst2 =1.0/6.0;
+            const float cst3 =1.0/2.0;
+            float local_density = ((*cells)[pos_set].speed[0][0]
+                                   + (*cells)[pos_set].speed[2][0]
+                                   + (*cells)[pos_set].speed[4][0]
+                                   + 2.0 * ((*cells)[pos_set].speed[3][0]+(*cells)[pos_set].speed[6][0]+(*cells)[pos_set].speed[7][0])
+                                  )/(1.0 - inlets[jj]);
+            float local_inlet = local_density*inlets[jj];
+            float index_cell = (*cells)[pos_set].speed[2][0]-(*cells)[pos_set].speed[4][0];
+
+            (*cells)[pos_set].speed[1][0] = (*cells)[pos_set].speed[3][0]
+                                          + cst1*local_inlet;
+
+            (*cells)[pos_set].speed[5][0] = (*cells)[pos_set].speed[7][0]
+                                          - cst3*(index_cell)
+                                          + cst2*local_inlet;
+
+            (*cells)[pos_set].speed[8][0] = (*cells)[pos_set].speed[6][0]
+                                          + cst3*(index_cell)
+                                          + cst2*local_inlet;
+          }
+          else if(ii==params.nx-SIMDLEN){
+            (*cells)[pos_set].speed[0][SIMDLEN-1] = (*cells)[pos_set].speed[0][SIMDLEN-2];
+            (*cells)[pos_set].speed[1][SIMDLEN-1] = (*cells)[pos_set].speed[1][SIMDLEN-2];
+            (*cells)[pos_set].speed[2][SIMDLEN-1] = (*cells)[pos_set].speed[2][SIMDLEN-2];
+            (*cells)[pos_set].speed[3][SIMDLEN-1] = (*cells)[pos_set].speed[3][SIMDLEN-2];
+            (*cells)[pos_set].speed[4][SIMDLEN-1] = (*cells)[pos_set].speed[4][SIMDLEN-2];
+            (*cells)[pos_set].speed[5][SIMDLEN-1] = (*cells)[pos_set].speed[5][SIMDLEN-2];
+            (*cells)[pos_set].speed[6][SIMDLEN-1] = (*cells)[pos_set].speed[6][SIMDLEN-2];
+            (*cells)[pos_set].speed[7][SIMDLEN-1] = (*cells)[pos_set].speed[7][SIMDLEN-2];
+            (*cells)[pos_set].speed[8][SIMDLEN-1] = (*cells)[pos_set].speed[8][SIMDLEN-2];
+          }
         }
     }
     return EXIT_SUCCESS;
@@ -384,8 +422,6 @@ int boundary(const t_param params, t_speed_t** cells,  t_speed_t** tmp_cells, fl
     const float cst3 =1.0/2.0;
 
     int jj;
-
-
     // top wall (bounce)
     jj = params.ny -1;
 #pragma omp parallel for simd schedule(static)
@@ -396,21 +432,21 @@ int boundary(const t_param params, t_speed_t** cells,  t_speed_t** tmp_cells, fl
         _mm256_store_ps(&(*cells)[set].speed[4][ind], _mm256_load_ps(&(*tmp_cells)[set].speed[2][ind]));
         _mm256_store_ps(&(*cells)[set].speed[7][ind], _mm256_load_ps(&(*tmp_cells)[set].speed[5][ind]));
         _mm256_store_ps(&(*cells)[set].speed[8][ind], _mm256_load_ps(&(*tmp_cells)[set].speed[6][ind]));
+        /*bottom wall*/
         set=ii/SIMDLEN; ind=ii%SIMDLEN;
         _mm256_store_ps(&(*cells)[set].speed[2][ind], _mm256_load_ps( &(*tmp_cells)[set].speed[4][ind]));
         _mm256_store_ps(&(*cells)[set].speed[5][ind], _mm256_load_ps( &(*tmp_cells)[set].speed[7][ind]));
         _mm256_store_ps(&(*cells)[set].speed[6][ind], _mm256_load_ps( &(*tmp_cells)[set].speed[8][ind]));
     }
 
-    // bottom wall (bounce)
-    /*jj = 0;*/
 
 
-    // left wall (inlet)
-    /*ii = 0;*/
+
   int ii = params.nx-1;
 #pragma omp parallel for simd schedule(static)
     for(jj = 0; jj < params.ny; jj++){
+      // left wall (inlet)
+      /*ii = 0;*/
         const int pos= jj*params.nx;
         const int set=pos/SIMDLEN;
         int ind=pos%SIMDLEN;
@@ -434,37 +470,18 @@ int boundary(const t_param params, t_speed_t** cells,  t_speed_t** tmp_cells, fl
                                       + cst2*local_inlet;
       // right wall (outlet)
       const int row = jj * params.nx;
-      int pos1= ii + row;
-      int pos2= ii - 1 + row;
-      (*cells)[pos1/SIMDLEN].speed[0][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[0][pos2%SIMDLEN];
-      (*cells)[pos1/SIMDLEN].speed[1][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[1][pos2%SIMDLEN];
-      (*cells)[pos1/SIMDLEN].speed[2][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[2][pos2%SIMDLEN];
-      (*cells)[pos1/SIMDLEN].speed[3][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[3][pos2%SIMDLEN];
-      (*cells)[pos1/SIMDLEN].speed[4][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[4][pos2%SIMDLEN];
-      (*cells)[pos1/SIMDLEN].speed[5][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[5][pos2%SIMDLEN];
-      (*cells)[pos1/SIMDLEN].speed[6][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[6][pos2%SIMDLEN];
-      (*cells)[pos1/SIMDLEN].speed[7][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[7][pos2%SIMDLEN];
-      (*cells)[pos1/SIMDLEN].speed[8][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[8][pos2%SIMDLEN];
-
+      int pos1= ii + row; int set1=pos1/SIMDLEN; int ind1=pos1%SIMDLEN;
+      int pos2= ii - 1 + row; int set2=pos2/SIMDLEN; int ind2=pos2%SIMDLEN;
+      (*cells)[set1].speed[0][ind1] = (*cells)[set2].speed[0][ind2];
+      (*cells)[set1].speed[1][ind1] = (*cells)[set2].speed[1][ind2];
+      (*cells)[set1].speed[2][ind1] = (*cells)[set2].speed[2][ind2];
+      (*cells)[set1].speed[3][ind1] = (*cells)[set2].speed[3][ind2];
+      (*cells)[set1].speed[4][ind1] = (*cells)[set2].speed[4][ind2];
+      (*cells)[set1].speed[5][ind1] = (*cells)[set2].speed[5][ind2];
+      (*cells)[set1].speed[6][ind1] = (*cells)[set2].speed[6][ind2];
+      (*cells)[set1].speed[7][ind1] = (*cells)[set2].speed[7][ind2];
+      (*cells)[set1].speed[8][ind1] = (*cells)[set2].speed[8][ind2];
     }
-    /*// right wall (outlet)
-    ii = params.nx-1;
-#pragma omp parallel for schedule(static)
-    for (jj = 0; jj < params.ny; jj++) {
-        *//*simd*//*
-          const int row = jj * params.nx;
-          int pos1= ii + row;
-          int pos2= ii - 1 + row;
-          (*cells)[pos1/SIMDLEN].speed[0][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[0][pos2%SIMDLEN];
-          (*cells)[pos1/SIMDLEN].speed[1][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[1][pos2%SIMDLEN];
-          (*cells)[pos1/SIMDLEN].speed[2][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[2][pos2%SIMDLEN];
-          (*cells)[pos1/SIMDLEN].speed[3][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[3][pos2%SIMDLEN];
-          (*cells)[pos1/SIMDLEN].speed[4][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[4][pos2%SIMDLEN];
-          (*cells)[pos1/SIMDLEN].speed[5][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[5][pos2%SIMDLEN];
-          (*cells)[pos1/SIMDLEN].speed[6][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[6][pos2%SIMDLEN];
-          (*cells)[pos1/SIMDLEN].speed[7][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[7][pos2%SIMDLEN];
-          (*cells)[pos1/SIMDLEN].speed[8][pos1%SIMDLEN] = (*cells)[pos2/SIMDLEN].speed[8][pos2%SIMDLEN];
-    }*/
     return EXIT_SUCCESS;
 }
 
