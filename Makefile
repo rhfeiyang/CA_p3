@@ -1,7 +1,7 @@
 #  Makefile
 CC = gcc
 CFLAGS = -std=c11 -Wall -Ofast
-LIBS = -lm -fopenmp -march=native -fprefetch-loop-arrays
+LIBS = -lm -fopenmp -march=native -fprefetch-loop-arrays -mtune=broadwell
 SRC = main.c d2q9_bgk.c calc.c utils.c 
 EXE=lbm
 
