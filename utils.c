@@ -113,6 +113,7 @@ int initialise(const char* paramfile, const char* obstaclefile,
       (*cells_ptr)[ii + jj*params->nx].speeds[8] = w2;
     }
   }*/
+#pragma omp parallel for schedule(static)
     for(int set=0;set<set_num;set++) {
         for (int i = 0; i < NSPEEDS; i++) {
             float w;
