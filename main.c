@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
     comp_time = timstr.tv_sec + (timstr.tv_usec / 1000000.0);
 
     /* timestep loop */
-    collision_obstacle(params, &cells, &tmp_cells, obstacles);
+  collision_obstacle(params, &cells, &tmp_cells, obstacles);
     for (int tt = 0; tt < params.maxIters-1; tt++)
     {
 //        timestep(params, &cells, &tmp_cells, inlets, obstacles);
@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
     streaming_boundary(params, &cells, &tmp_cells, inlets);
 
 
-    /* Compute time stops here */
+  /* Compute time stops here */
     gettimeofday(&timstr, NULL);
     comp_time = timstr.tv_sec + (timstr.tv_usec / 1000000.0) - comp_time;
 
@@ -124,8 +124,8 @@ int main(int argc, char* argv[])
     /* total time stop */
     gettimeofday(&timstr, NULL);
     total_time= timstr.tv_sec + (timstr.tv_usec / 1000000.0) - total_time;
+    /*total_time= -1.0;*/
     printf("Elapsed Total time:\t\t\t%.6lf (s)\n",   total_time);
-
 
     return EXIT_SUCCESS;
 }
