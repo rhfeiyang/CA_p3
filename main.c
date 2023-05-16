@@ -37,7 +37,8 @@ int main(int argc, char* argv[])
     double total_time, init_time, comp_time; /* floating point numbers to calculate elapsed wallclock time */
     char buf[128];                /* a string buffer for specific filename */
     int procs=omp_get_num_procs();
-    if(procs>4) omp_set_num_threads(procs/2);
+    /*we do not know if hyper threading will be used in the last*/
+    if(procs>14) omp_set_num_threads(14);
     /* parse the command line */
     if (argc < 3)
     {
