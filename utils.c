@@ -126,6 +126,7 @@ int initialise(const char* paramfile, const char* obstaclefile,
         }
     }
     /* first set all cells in obstacle array to zero */
+#pragma omp parallel for schedule(static)
     for (int jj = 0; jj < params->ny; jj++)
     {
         for (int ii = 0; ii < params->nx; ii++)
@@ -232,18 +233,10 @@ int write_state(char* filename, const t_param params, t_speed_t** cells, int* ob
 
                 for (int kk = 0; kk < NSPEEDS; kk++)
                 {
-                    /*local_density += (*cells)[pos].speeds[kk];*/
                     local_density += (*cells)[set].speed[kk][ind];
                 }
 
                 /* compute x velocity component */
-                /*u_x = ((*cells)[pos].speeds[1]
-                       + (*cells)[pos].speeds[5]
-                       + (*cells)[pos].speeds[8]
-                       - ((*cells)[pos].speeds[3]
-                          + (*cells)[pos].speeds[6]
-                          + (*cells)[pos].speeds[7]))
-                      / local_density;*/
                 u_x = ((*cells)[set].speed[1][ind]
                        + (*cells)[set].speed[5][ind]
                        + (*cells)[set].speed[8][ind]
