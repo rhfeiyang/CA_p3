@@ -123,9 +123,9 @@ int main(int argc, char* argv[])
 
     /* total time stop */
     gettimeofday(&timstr, NULL);
-    total_time= -1.0;
+    total_time= timstr.tv_sec + (timstr.tv_usec / 1000000.0) - total_time;
+    /*total_time= -1.0;*/
     printf("Elapsed Total time:\t\t\t%.6lf (s)\n",   total_time);
-
 
     return EXIT_SUCCESS;
 }

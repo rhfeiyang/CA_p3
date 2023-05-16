@@ -256,51 +256,6 @@ int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_
     return EXIT_SUCCESS;
 }
 
-int obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles) {
-    /* loop over the cells in the grid */
-#pragma omp parallel for schedule(dynamic)
-    for (int jj = 0; jj < params.ny; jj++)
-    {
-      #pragma omp simd
-        for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
-        {
-            int pos= ii + jj*params.nx;
-            /* if the cell contains an obstacle */
-            __m256i obstacle_mask= _mm256_load_si256((__m256i *)&obstacles[pos]);
-            /*int tmp[NSPEEDS];
-            _mm256_storeu_si256((__m256i *)tmp, obstacle_mask);
-            printf("%d %d %d %d %d %d %d %d\n",tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5],tmp[6],tmp[7]);*/
-            if (!_mm256_testz_si256(obstacle_mask,obstacle_mask))
-            {
-                __m256 obstacle_mask_ps=_mm256_castsi256_ps(_mm256_cmpeq_epi32(obstacle_mask, _mm256_set1_epi32(1)));
-                /* called after collision, so taking values from scratch space
-                ** mirroring, and writing into main grid */
-                /*(*tmp_cells)[0][pos] = (*cells)[0][pos];
-                (*tmp_cells)[1][pos] = (*cells)[3][pos];
-                (*tmp_cells)[2][pos] = (*cells)[4][pos];
-                (*tmp_cells)[3][pos] = (*cells)[1][pos];
-                (*tmp_cells)[4][pos] = (*cells)[2][pos];
-                (*tmp_cells)[5][pos] = (*cells)[7][pos];
-                (*tmp_cells)[6][pos] = (*cells)[8][pos];
-                (*tmp_cells)[7][pos] = (*cells)[5][pos];
-                (*tmp_cells)[8][pos] = (*cells)[6][pos];*/
-                const int set=pos/SIMDLEN;
-                int ind=pos%SIMDLEN;
-                _mm256_store_ps(&(*tmp_cells)[set].speed[0][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[0][ind]),_mm256_load_ps(&(*cells)[set].speed[0][ind]),obstacle_mask_ps));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[1][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[1][ind]),_mm256_load_ps(&(*cells)[set].speed[3][ind]),obstacle_mask_ps));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[2][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[2][ind]),_mm256_load_ps(&(*cells)[set].speed[4][ind]),obstacle_mask_ps));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[3][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[3][ind]),_mm256_load_ps(&(*cells)[set].speed[1][ind]),obstacle_mask_ps));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[4][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[4][ind]),_mm256_load_ps(&(*cells)[set].speed[2][ind]),obstacle_mask_ps));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[5][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[5][ind]),_mm256_load_ps(&(*cells)[set].speed[7][ind]),obstacle_mask_ps));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[6][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[6][ind]),_mm256_load_ps(&(*cells)[set].speed[8][ind]),obstacle_mask_ps));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[7][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[7][ind]),_mm256_load_ps(&(*cells)[set].speed[5][ind]),obstacle_mask_ps));
-                _mm256_store_ps(&(*tmp_cells)[set].speed[8][ind],_mm256_blendv_ps(_mm256_load_ps(&(*tmp_cells)[set].speed[8][ind]),_mm256_load_ps(&(*cells)[set].speed[6][ind]),obstacle_mask_ps));
-            }
-        }
-    }
-    return EXIT_SUCCESS;
-}
-
 static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir,int pos_set,int neighbour_set,int x_w, int jx,int ii,int ysx,int x_e,int ynx,const __m256i* left_mask,const __m256i* right_mask){
   int tmp_pos,set,ind;
   if(dir==1) { tmp_pos = x_w + jx;}
