@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
 
     /* total time stop */
     gettimeofday(&timstr, NULL);
-    total_time= 0;
+    total_time= -1;
     printf("Elapsed Total time:\t\t\t%.6lf (s)\n",   total_time);
 
 
