@@ -63,14 +63,12 @@ int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_
     const __m256 w0_vec=_mm256_set1_ps(w0);
     const __m256 w1_vec=_mm256_set1_ps(w1);
     const __m256 w2_vec=_mm256_set1_ps(w2);
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for simd schedule(static)
     for (int jj = 0; jj < params.ny; jj++)
     {
-#pragma omp simd
-        for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
+        for (int ii = 0,set = (jj*params.nx)/SIMDLEN; ii < params.nx; ii+=SIMDLEN, set++)
         {
             const int pos = ii + jj*params.nx;
-            const int set=pos/SIMDLEN;
             int ind=pos%SIMDLEN;
             /* __m256i obstacle_mask=_mm256_load_si256((__m256i *)&obstacles[pos]); */
 /*       int tmp[9];
@@ -309,23 +307,23 @@ int streaming_boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_
 //  omp_set_num_threads(8);
     const __m256i left_mask=_mm256_set_epi32(6,5,4,3,2,1,0,7);
     const __m256i right_mask=_mm256_set_epi32(0,7,6,5,4,3,2,1);
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for simd schedule(static)
     for (int jj = 0; jj < params.ny; jj++)
     {
-#pragma omp simd
+        int jx = jj * params.nx;
+        int y_n = (jj + 1) % params.ny;
+        int y_s = (jj != 0) ? (jj-1) : (params.ny - 1);
+        int ynx = y_n*params.nx;
+        int ysx = y_s*params.nx;
         for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
         {
             int pos= ii + jj*params.nx;
-            int jx = jj * params.nx;
-
             /* determine indices of axis-direction neighbours
             ** respecting periodic boundary conditions (wrap around) */
-            int y_n = (jj + 1) % params.ny;
+
             int x_e = (ii + SIMDLEN) % params.nx;
-            int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
-            int x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
-            int ynx = y_n*params.nx;
-            int ysx = y_s*params.nx;
+            int x_w = (ii != 0) ? (ii-1) : (params.nx - 1);
+
             /* propagate densities from neighbouring cells, following
             ** appropriate directions of travel and writing into
             ** scratch space grid */
@@ -540,23 +538,25 @@ int streaming_boundary_collision(const t_param params, t_speed_t** cells, t_spee
 //  omp_set_num_threads(8);
     const __m256i left_mask=_mm256_set_epi32(6,5,4,3,2,1,0,7);
     const __m256i right_mask=_mm256_set_epi32(0,7,6,5,4,3,2,1);
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for simd schedule(static)
     for (int jj = 0; jj < params.ny; jj++)
     {
-#pragma omp simd
+        int jx = jj * params.nx;
+        int y_n = (jj + 1) % params.ny;
+        int y_s = (jj != 0) ? (jj - 1) : (params.ny - 1);
+        int ynx = y_n*params.nx;
+        int ysx = y_s*params.nx;
         for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
         {
-            int pos= ii + jj*params.nx;
-            int jx = jj * params.nx;
+            int pos= ii+jx;
+
 
             /* determine indices of axis-direction neighbours
             ** respecting periodic boundary conditions (wrap around) */
-            int y_n = (jj + 1) % params.ny;
+
             int x_e = (ii + SIMDLEN) % params.nx;
-            int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
-            int x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
-            int ynx = y_n*params.nx;
-            int ysx = y_s*params.nx;
+            int x_w = (ii != 0) ? (ii - 1) : (params.nx - 1);
+
             /* propagate densities from neighbouring cells, following
             ** appropriate directions of travel and writing into
             ** scratch space grid */
