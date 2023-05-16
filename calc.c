@@ -2,6 +2,7 @@
 
 /* set inlets velocity there are two type inlets*/
 int set_inlets(const t_param params, float* inlets) {
+#pragma omp parallel for schedule(static)
     for(int jj=0; jj <params.ny; jj++){
         if(!params.type)
             inlets[jj]=params.velocity; // homogeneous
@@ -21,6 +22,7 @@ float av_velocity(const t_param params, t_speed_t** cells, int* obstacles)
     tot_u = 0.f;
 
     /* loop over all non-blocked cells */
+#pragma omp parallel for schedule(static)
     for (int jj = 0; jj < params.ny; jj++)
     {
         for (int ii = 0; ii < params.nx; ii++)

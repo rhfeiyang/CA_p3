@@ -126,7 +126,6 @@ int initialise(const char* paramfile, const char* obstaclefile,
         }
     }
     /* first set all cells in obstacle array to zero */
-#pragma omp parallel for schedule(static)
     for (int jj = 0; jj < params->ny; jj++)
     {
         for (int ii = 0; ii < params->nx; ii++)
