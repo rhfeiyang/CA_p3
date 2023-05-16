@@ -86,20 +86,23 @@ int main(int argc, char* argv[])
     comp_time = timstr.tv_sec + (timstr.tv_usec / 1000000.0);
 
     /* timestep loop */
-    for (int tt = 0; tt < params.maxIters; tt++)
+  collision_obstacle(params, &cells, &tmp_cells, obstacles);
+    for (int tt = 0; tt < params.maxIters-1; tt++)
     {
-        timestep(params, &cells, &tmp_cells, inlets, obstacles);
-
+//        timestep(params, &cells, &tmp_cells, inlets, obstacles);
+        streaming_boundary_collision(params, &cells, &tmp_cells, inlets, obstacles);
         /* Visualization */
 #ifdef VISUAL
         if (tt % 1000 == 0) {
       sprintf(buf, "%s/visual/state_%d.dat", out_dir , tt / 1000);
-      write_state(buf, params, &cells, obstacles);
+      write_state(buf, params, &tmp_cells, obstacles);
     }
 #endif
     }
+    streaming_boundary(params, &cells, &tmp_cells, inlets);
 
-    /* Compute time stops here */
+
+  /* Compute time stops here */
     gettimeofday(&timstr, NULL);
     comp_time = timstr.tv_sec + (timstr.tv_usec / 1000000.0) - comp_time;
 
