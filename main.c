@@ -94,10 +94,10 @@ int main(int argc, char* argv[])
         streaming_boundary_collision(params, &cells, &tmp_cells, inlets, obstacles);
         /* Visualization */
 #ifdef VISUAL
-        /*if (tt % 1000 == 0) {
+        if (tt % 1000 == 0) {
       sprintf(buf, "%s/visual/state_%d.dat", out_dir , tt / 1000);
       write_state(buf, params, &tmp_cells, obstacles);
-    }*/
+    }
 #endif
     }
     streaming_boundary(params, &cells, &tmp_cells, inlets);
