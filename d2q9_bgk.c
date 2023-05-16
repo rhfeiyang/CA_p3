@@ -357,20 +357,23 @@ int streaming_boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_
 #pragma omp parallel for schedule(static)
     for (int jj = 0; jj < params.ny; jj++)
     {
+        int jx = jj * params.nx;
+        int y_n = (jj + 1) % params.ny;
+        int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
+        int ynx = y_n*params.nx;
+        int ysx = y_s*params.nx;
       #pragma omp simd
         for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
         {
-          int pos= ii + jj*params.nx;
-          int jx = jj * params.nx;
+          int pos= jx+ii;
 
           /* determine indices of axis-direction neighbours
           ** respecting periodic boundary conditions (wrap around) */
-          int y_n = (jj + 1) % params.ny;
+
           int x_e = (ii + SIMDLEN) % params.nx;
-          int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
+
           int x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
-          int ynx = y_n*params.nx;
-          int ysx = y_s*params.nx;
+
           /* propagate densities from neighbouring cells, following
           ** appropriate directions of travel and writing into
           ** scratch space grid */
