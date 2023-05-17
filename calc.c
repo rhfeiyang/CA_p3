@@ -22,7 +22,7 @@ float av_velocity(const t_param params, t_speed_t** cells, int* obstacles)
     tot_u = 0.f;
 
     /* loop over all non-blocked cells */
-#pragma omp parallel for simd schedule(static)
+#pragma omp parallel for schedule(static) reduction(+:tot_u,tot_cells)
     for (int jj = 0; jj < params.ny; jj++)
     {
         for (int ii = 0; ii < params.nx; ii++)
