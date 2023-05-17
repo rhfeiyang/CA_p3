@@ -279,9 +279,9 @@ static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir
         else if(jx==0 && dir==5) { source_dir = 7; neighbour_set=pos_set; _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[source_dir][0]));}
         else{
             __m256 tmp=_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[source_dir][0]);
-            __m256 a= _mm256_set1_ps((*tmp_cells)[set].speed[dir][ind]);
+            tmp[7]=(*tmp_cells)[set].speed[dir][ind];
             _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],
-                            _mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x80),*left_mask));
+                            _mm256_permutevar8x32_ps(tmp,*left_mask));
         }
     }
     else{
@@ -290,9 +290,9 @@ static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir
         else if(jx==0 && dir==6) { source_dir = 8; neighbour_set=pos_set; _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[source_dir][0]));}
         else{
             __m256 tmp=_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[source_dir][0]);
-            __m256 a= _mm256_set1_ps((*tmp_cells)[set].speed[dir][ind]);
+            tmp[0]=(*tmp_cells)[set].speed[dir][ind];
             _mm256_store_ps(&(*cells)[pos_set].speed[dir][0],
-                            _mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x01),*right_mask));
+                            _mm256_permutevar8x32_ps(tmp,*right_mask));
         }
     }
 }
@@ -512,8 +512,8 @@ static inline void speed_update_atom(__m256 data[NSPEEDS],t_speed_t ** tmp_cells
         else if(jx==0 && dir==5) { source_dir = 7; neighbour_set=pos_set; data[dir]=_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[source_dir][0]);}
         else{
             __m256 tmp=_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[source_dir][0]);
-            __m256 a= _mm256_set1_ps((*tmp_cells)[set].speed[dir][ind]);
-            data[dir]=_mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x80),*left_mask);
+            tmp[7]=(*tmp_cells)[set].speed[dir][ind];
+            data[dir]=_mm256_permutevar8x32_ps(tmp,*left_mask);
         }
     }
     else{
@@ -522,8 +522,8 @@ static inline void speed_update_atom(__m256 data[NSPEEDS],t_speed_t ** tmp_cells
         else if(jx==0 && dir==6) { source_dir = 8; neighbour_set=pos_set; data[dir]=_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[source_dir][0]);}
         else{
             __m256 tmp=_mm256_load_ps(&(*tmp_cells)[neighbour_set].speed[source_dir][0]);
-            __m256 a= _mm256_set1_ps((*tmp_cells)[set].speed[dir][ind]);
-            data[dir]=_mm256_permutevar8x32_ps(_mm256_blend_ps(tmp,a,0x01),*right_mask);
+            tmp[0]=(*tmp_cells)[set].speed[dir][ind];
+            data[dir]=_mm256_permutevar8x32_ps(tmp,*right_mask);
         }
     }
 }
