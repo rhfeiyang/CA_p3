@@ -519,14 +519,41 @@ int streaming_boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_
 static inline void speed_update_atom(__m256 data[NSPEEDS],t_speed_t ** tmp_cells,int dir,int pos_set,int neighbour_set,int xw_set,int xe_set,int ys_set,int yn_set,int y_set,int x_set,const __m256i* left_mask,const __m256i* right_mask){
     int set,ind;
 
-    if(dir==1) { set = xw_set + y_set;ind=7;}
+    /*if(dir==1) { set = xw_set + y_set;ind=7;}
     else if (dir==2) set=x_set  + ys_set;
     else if (dir==3) { set = xe_set + y_set; ind=0;}
     else if (dir==4) set=x_set  + yn_set;
     else if (dir==5) { set = xw_set + ys_set; ind=7;}
     else if (dir==6) { set = xe_set + ys_set; ind=0;}
     else if (dir==7) { set = xe_set + yn_set; ind=0;}
-    else if (dir==8) { set = xw_set + yn_set; ind=7;}
+    else if (dir==8) { set = xw_set + yn_set; ind=7;}*/
+
+    switch (dir) {
+        case 1:
+            set = xw_set + y_set;ind=7;
+            break;
+        case 2:
+            set=x_set  + ys_set;
+            break;
+        case 3:
+            set = xe_set + y_set; ind=0;
+            break;
+        case 4:
+            set=x_set  + yn_set;
+            break;
+        case 5:
+            set = xw_set + ys_set; ind=7;
+            break;
+        case 6:
+            set = xe_set + ys_set; ind=0;
+            break;
+        case 7:
+            set = xe_set + yn_set; ind=0;
+            break;
+        case 8:
+            set = xw_set + yn_set; ind=7;
+            break;
+    }
 
     int source_dir=dir;
 //    set=tmp_pos/SIMDLEN;
