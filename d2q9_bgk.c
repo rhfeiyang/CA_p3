@@ -71,7 +71,7 @@ int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_
         for (int ii = 0,set = (jj*params.nx)/SIMDLEN; ii < params.nx; ii+=SIMDLEN, set++)
         {
             const int pos = ii + jj*params.nx;
-            int ind=pos%SIMDLEN;
+            int ind=pos&7;
             /* __m256i obstacle_mask=_mm256_load_si256((__m256i *)&obstacles[pos]); */
 /*       int tmp[9];
       _mm256_storeu_si256(tmp,obstacle_mask);
@@ -292,7 +292,7 @@ static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir
             tmp_pos = x_w + ynx;
             break;
     }
-    set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+    set=tmp_pos/SIMDLEN; ind=tmp_pos&7;
     int source_dir=dir;
 //  printf("pos_x: %d, pos_y:%d ,dir: %d ,temp_x: %d, temp_y:%d\n",pos_set*8%4096,pos_set*8/4096,dir,tmp_pos%4096,tmp_pos/4096);
     if(dir==2 || dir==4){
@@ -552,7 +552,7 @@ static inline void speed_update_atom(__m256 data[NSPEEDS],t_speed_t ** tmp_cells
             break;
     }
 
-    set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+    set=tmp_pos/SIMDLEN; ind=tmp_pos&7;
     int source_dir=dir;
 //  printf("pos_x: %d, pos_y:%d ,dir: %d ,temp_x: %d, temp_y:%d\n",pos_set*8%4096,pos_set*8/4096,dir,tmp_pos%4096,tmp_pos/4096);
     if(dir==2 || dir==4){
