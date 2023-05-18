@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
     for (int tt = 0; tt < params.maxIters-1; tt++)
     {
 //        timestep(params, &cells, &tmp_cells, inlets, obstacles);
-        streaming_boundary_collision(tt,params, &cells, &tmp_cells, inlets, obstacles);
+        streaming_boundary_collision(params, &cells, &tmp_cells, inlets, obstacles);
         /* Visualization */
 #ifdef VISUAL
         if (tt % 1000 == 0) {
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
     }
 #endif
     }
-    streaming_boundary(params.maxIters-1,params, &cells, &tmp_cells, inlets);
+    streaming_boundary(params, &cells, &tmp_cells, inlets);
 
 
     /* Compute time stops here */

@@ -4,40 +4,40 @@
 #include <assert.h>
 /*zxx test-5.8*/
 /* The main processes in one step */
-int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles);
-int streaming_boundary(int iteration,const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets);
-int obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles);
-int boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets);
-int streaming_boundary_collision(int iteration,const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets,int* obstacles);
+//int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles);
+//int streaming_boundary(int iteration,const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets);
+//int obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles);
+//int boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets);
+//int streaming_boundary_collision(int iteration,const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets,int* obstacles);
 /*
 ** The main calculation methods.
 ** timestep calls, in order, the functions:
 ** collision(), obstacle(), streaming() & boundary()
 */
-int timestep(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets, int* obstacles)
-{
-    /* The main time overhead, you should mainly optimize these processes. */
-    /*int obstacle_num=0;
-    for(int i=0;i< params.nx*params.ny;i++){
-      if(obstacles[i]==1){
-        obstacle_num++;
-      }
-    }
-  printf("total:%d， obstacle:%d\n", params.nx*params.ny,obstacle_num);*/
-
-//    obstacle(params, cells, tmp_cells, obstacles);
-
-//    boundary(params, cells, tmp_cells, inlets);
-    /*for(int i=0;i<NSPEEDS;i++){
-      printf("tmp(*cells)[%d].speeds[0]=%f\n",i,(*tmp_cells)[i][0]);
-    }*/
-    collision_obstacle(params, cells, tmp_cells, obstacles);
-    /*for(int i=0;i< times-1;++i){
-      streaming_boundary_collision(params,cells, tmp_cells, inlets,obstacles);
-    }*/
-    streaming_boundary(params.nx-1,params, cells, tmp_cells, inlets);
-    return EXIT_SUCCESS;
-}
+//int timestep(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets, int* obstacles)
+//{
+//    /* The main time overhead, you should mainly optimize these processes. */
+//    /*int obstacle_num=0;
+//    for(int i=0;i< params.nx*params.ny;i++){
+//      if(obstacles[i]==1){
+//        obstacle_num++;
+//      }
+//    }
+//  printf("total:%d， obstacle:%d\n", params.nx*params.ny,obstacle_num);*/
+//
+////    obstacle(params, cells, tmp_cells, obstacles);
+//
+////    boundary(params, cells, tmp_cells, inlets);
+//    /*for(int i=0;i<NSPEEDS;i++){
+//      printf("tmp(*cells)[%d].speeds[0]=%f\n",i,(*tmp_cells)[i][0]);
+//    }*/
+//    collision_obstacle(params, cells, tmp_cells, obstacles);
+//    /*for(int i=0;i< times-1;++i){
+//      streaming_boundary_collision(params,cells, tmp_cells, inlets,obstacles);
+//    }*/
+//    streaming_boundary(params, cells, tmp_cells, inlets);
+//    return EXIT_SUCCESS;
+//}
 
 /*
 ** The collision of fluids in the cell is calculated using
@@ -303,7 +303,7 @@ static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir
 ** Particles flow to the corresponding cell according to their speed direaction.
 */
 /*tmp_cells->cells*/
-int streaming_boundary(int iteration,const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets) {
+int streaming_boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets) {
     /* loop over _all_ cells */
 //  printf("%f\n",(*cells)[0].speed[5][0]);
 //  omp_set_num_threads(8);
@@ -317,7 +317,7 @@ int streaming_boundary(int iteration,const t_param params, t_speed_t** cells, t_
         int y_s = (jj != 0) ? (jj-1) : (params.ny - 1);
         int ynx = y_n*params.nx;
         int ysx = y_s*params.nx;
-        for (int ii = 0; ii < (iteration/SIMDLEN+1)*SIMDLEN && ii < params.nx; ii+=SIMDLEN)
+        for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
         {
             int pos= ii + jj*params.nx;
             /* determine indices of axis-direction neighbours
@@ -535,7 +535,7 @@ static inline void speed_update_atom(__m256 data[NSPEEDS],t_speed_t ** tmp_cells
 ** Particles flow to the corresponding cell according to their speed direaction.
 */
 /*tmp_cells->tmp_cells*/
-int streaming_boundary_collision(int iteration, const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets,int* obstacles) {
+int streaming_boundary_collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets,int* obstacles) {
     /* loop over _all_ cells */
 //  printf("%f\n",(*cells)[0].speed[5][0]);
 //  omp_set_num_threads(8);
@@ -549,7 +549,7 @@ int streaming_boundary_collision(int iteration, const t_param params, t_speed_t*
         int y_s = (jj != 0) ? (jj - 1) : (params.ny - 1);
         int ynx = y_n*params.nx;
         int ysx = y_s*params.nx;
-        for (int ii = 0; ii < (iteration/SIMDLEN+1)*SIMDLEN &&  ii <params.nx; ii+=SIMDLEN)
+        for (int ii = 0; ii <params.nx; ii+=SIMDLEN)
         {
             int pos= ii+jx;
 
