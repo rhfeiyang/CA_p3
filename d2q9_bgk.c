@@ -516,8 +516,7 @@ int streaming_boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_
 //}
 
 /*tmp_cells->data*/
-static inline void speed_update_atom(__m256 data[NSPEEDS],t_speed_t ** tmp_cells,int dir,int pos_set,int neighbour_set,int xw_set,int xe_set,int ys_set,int yn_set,int y_set,int x_set,const __m256i* left_mask,const __m256i* right_mask){
-    int set,ind;
+static inline void speed_update_atom(__m256 data[NSPEEDS],t_speed_t ** tmp_cells,int dir,int pos_set,int neighbour_set,int set,int ind, int yn_set, int y_set,const __m256i* left_mask,const __m256i* right_mask){
 
     /*if(dir==1) { set = xw_set + y_set;ind=7;}
     else if (dir==2) set=x_set  + ys_set;
@@ -527,33 +526,6 @@ static inline void speed_update_atom(__m256 data[NSPEEDS],t_speed_t ** tmp_cells
     else if (dir==6) { set = xe_set + ys_set; ind=0;}
     else if (dir==7) { set = xe_set + yn_set; ind=0;}
     else if (dir==8) { set = xw_set + yn_set; ind=7;}*/
-
-    switch (dir) {
-        case 1:
-            set = xw_set + y_set;ind=7;
-            break;
-        case 2:
-            set=x_set  + ys_set;
-            break;
-        case 3:
-            set = xe_set + y_set; ind=0;
-            break;
-        case 4:
-            set=x_set  + yn_set;
-            break;
-        case 5:
-            set = xw_set + ys_set; ind=7;
-            break;
-        case 6:
-            set = xe_set + ys_set; ind=0;
-            break;
-        case 7:
-            set = xe_set + yn_set; ind=0;
-            break;
-        case 8:
-            set = xw_set + yn_set; ind=7;
-            break;
-    }
 
     int source_dir=dir;
 //    set=tmp_pos/SIMDLEN;
@@ -643,16 +615,23 @@ int streaming_boundary_collision(const t_param params,int sets_x, t_speed_t** ce
             data[0]=_mm256_load_ps(&(*tmp_cells)[pos_set].speed[0][0]); /* central cell, no movement */
             int up_set=yn_set+x_set;
             int down_set=ys_set+x_set;
-
-            speed_update_atom(data,tmp_cells,1,pos_set,pos_set,xw_set,xe_set,ys_set,yn_set,y_set,x_set,&left_mask,&right_mask);
-            speed_update_atom(data,tmp_cells,3,pos_set,pos_set,xw_set,xe_set,ys_set,yn_set,y_set,x_set,&left_mask,&right_mask);
-            speed_update_atom(data,tmp_cells,4,pos_set,up_set, xw_set,xe_set,ys_set,yn_set,y_set,x_set,&left_mask,&right_mask);
-            speed_update_atom(data,tmp_cells,7,pos_set,up_set, xw_set,xe_set,ys_set,yn_set,y_set,x_set,&left_mask,&right_mask);
-            speed_update_atom(data,tmp_cells,8,pos_set,up_set,xw_set,xe_set,ys_set,yn_set,y_set,x_set,&left_mask,&right_mask);
-
-            speed_update_atom(data,tmp_cells,2,pos_set,down_set,xw_set,xe_set,ys_set,yn_set,y_set,x_set,&left_mask,&right_mask);
-            speed_update_atom(data,tmp_cells,6,pos_set,down_set,xw_set,xe_set,ys_set,yn_set,y_set,x_set,&left_mask,&right_mask);
-            speed_update_atom(data,tmp_cells,5,pos_set,down_set,xw_set,xe_set,ys_set,yn_set,y_set,x_set,&left_mask,&right_mask);
+            
+            int set = xw_set + y_set; int ind=7;
+            speed_update_atom(data,tmp_cells,1,pos_set,pos_set,set,ind,yn_set, y_set,&left_mask,&right_mask);
+          set = xe_set + y_set; ind=0;
+            speed_update_atom(data,tmp_cells,3,pos_set,pos_set,set,ind,yn_set, y_set,&left_mask,&right_mask);
+          set=x_set  + yn_set;
+            speed_update_atom(data,tmp_cells,4,pos_set,up_set, set,ind,yn_set, y_set,&left_mask,&right_mask);
+          set = xe_set + yn_set; /*ind=0;*/
+            speed_update_atom(data,tmp_cells,7,pos_set,up_set, set,ind,yn_set, y_set,&left_mask,&right_mask);
+          set = xw_set + yn_set; ind=7;
+            speed_update_atom(data,tmp_cells,8,pos_set,up_set,set,ind,yn_set, y_set,&left_mask,&right_mask);
+          set=x_set  + ys_set;
+            speed_update_atom(data,tmp_cells,2,pos_set,down_set,set,ind,yn_set, y_set,&left_mask,&right_mask);
+          set = xe_set + ys_set; ind=0;
+            speed_update_atom(data,tmp_cells,6,pos_set,down_set,set,ind,yn_set, y_set,&left_mask,&right_mask);
+          set = xw_set + ys_set; ind=7;
+            speed_update_atom(data,tmp_cells,5,pos_set,down_set,set,ind,yn_set, y_set,&left_mask,&right_mask);
             /*left wall*/
             if(ii==0){
                 float local_density = (  data[0][0]
