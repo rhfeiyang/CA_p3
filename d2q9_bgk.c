@@ -258,14 +258,42 @@ int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_
 
 static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir,int pos_set,int neighbour_set,int x_w, int jx,int ii,int ysx,int x_e,int ynx,const __m256i* left_mask,const __m256i* right_mask){
     int tmp_pos,set,ind;
-    if(dir==1) { tmp_pos = x_w + jx;}
+    /*if(dir==1) { tmp_pos = x_w + jx;}
     else if (dir==2) tmp_pos=ii  + ysx;
     else if (dir==3) { tmp_pos = x_e + jx; }
     else if (dir==4) tmp_pos=ii  + ynx;
     else if (dir==5) { tmp_pos = x_w + ysx; }
     else if (dir==6) { tmp_pos = x_e + ysx; }
     else if (dir==7) { tmp_pos = x_e + ynx; }
-    else if (dir==8) { tmp_pos = x_w + ynx; }
+    else if (dir==8) { tmp_pos = x_w + ynx; }*/
+
+    switch (dir) {
+        case 1:
+            tmp_pos = x_w + jx;
+            break;
+        case 2:
+            tmp_pos=ii  + ysx;
+            break;
+        case 3:
+            tmp_pos = x_e + jx;
+            break;
+        case 4:
+            tmp_pos=ii  + ynx;
+            break;
+        case 5:
+            tmp_pos = x_w + ysx;
+            break;
+        case 6:
+            tmp_pos = x_e + ysx;
+            break;
+        case 7:
+            tmp_pos = x_e + ynx;
+            break;
+        case 8:
+            tmp_pos = x_w + ynx;
+            break;
+    }
+
 
     int source_dir=dir;
     set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
@@ -491,14 +519,41 @@ int streaming_boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_
 /*tmp_cells->data*/
 static inline void speed_update_atom(__m256 data[NSPEEDS],t_speed_t ** tmp_cells,int dir,int pos_set,int neighbour_set,int x_w, int jx,int ii,int ysx,int x_e,int ynx,const __m256i* left_mask,const __m256i* right_mask){
     int tmp_pos,set,ind;
-    if(dir==1) { tmp_pos = x_w + jx;}
+    /*if(dir==1) { tmp_pos = x_w + jx;}
     else if (dir==2) tmp_pos=ii  + ysx;
     else if (dir==3) { tmp_pos = x_e + jx; }
     else if (dir==4) tmp_pos=ii  + ynx;
     else if (dir==5) { tmp_pos = x_w + ysx; }
     else if (dir==6) { tmp_pos = x_e + ysx; }
     else if (dir==7) { tmp_pos = x_e + ynx; }
-    else if (dir==8) { tmp_pos = x_w + ynx; }
+    else if (dir==8) { tmp_pos = x_w + ynx; }*/
+
+    switch (dir) {
+        case 1:
+            tmp_pos = x_w + jx;
+            break;
+        case 2:
+            tmp_pos=ii  + ysx;
+            break;
+        case 3:
+            tmp_pos = x_e + jx;
+            break;
+        case 4:
+            tmp_pos=ii  + ynx;
+            break;
+        case 5:
+            tmp_pos = x_w + ysx;
+            break;
+        case 6:
+            tmp_pos = x_e + ysx;
+            break;
+        case 7:
+            tmp_pos = x_e + ynx;
+            break;
+        case 8:
+            tmp_pos = x_w + ynx;
+            break;
+    }
 
     int source_dir=dir;
     set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
