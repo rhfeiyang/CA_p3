@@ -68,7 +68,7 @@ int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_
 #pragma omp parallel for simd schedule(static)
     for (int jj = 0; jj < params.ny; jj++)
     {
-        for (int ii = 0,set = (jj*params.nx)/SIMDLEN; ii < params.nx; ii+=SIMDLEN, set++)
+        for (int ii = 0,set = (jj*params.nx)>>3; ii < params.nx; ii+=SIMDLEN, set++)
         {
             const int pos = ii + jj*params.nx;
             int ind=pos&7;
@@ -292,7 +292,7 @@ static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir
             tmp_pos = x_w + ynx;
             break;
     }
-    set=tmp_pos/SIMDLEN; ind=tmp_pos&7;
+    ind=tmp_pos&7;set=tmp_pos>>3;
     int source_dir=dir;
 //  printf("pos_x: %d, pos_y:%d ,dir: %d ,temp_x: %d, temp_y:%d\n",pos_set*8%4096,pos_set*8/4096,dir,tmp_pos%4096,tmp_pos/4096);
     if(dir==2 || dir==4){
@@ -355,10 +355,10 @@ int streaming_boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_
             /* propagate densities from neighbouring cells, following
             ** appropriate directions of travel and writing into
             ** scratch space grid */
-            int pos_set=pos/SIMDLEN;
+            int pos_set=pos>>3;
             _mm256_store_ps(&(*cells)[pos_set].speed[0][0],_mm256_load_ps(&(*tmp_cells)[pos_set].speed[0][0])); /* central cell, no movement */
-            int up_set=(ynx+ii)/SIMDLEN;
-            int down_set=(ysx+ii)/SIMDLEN;
+            int up_set=(ynx+ii)>>3;
+            int down_set=(ysx+ii)>>3;
             speed_update(cells,tmp_cells,1,pos_set,pos_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
             speed_update(cells,tmp_cells,3,pos_set,pos_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
 
@@ -552,7 +552,7 @@ static inline void speed_update_atom(__m256 data[NSPEEDS],t_speed_t ** tmp_cells
             break;
     }
 
-    set=tmp_pos/SIMDLEN; ind=tmp_pos&7;
+    set=tmp_pos>>3; ind=tmp_pos&7;
     int source_dir=dir;
 //  printf("pos_x: %d, pos_y:%d ,dir: %d ,temp_x: %d, temp_y:%d\n",pos_set*8%4096,pos_set*8/4096,dir,tmp_pos%4096,tmp_pos/4096);
     if(dir==2 || dir==4){
@@ -630,10 +630,10 @@ int streaming_boundary_collision(const t_param params, t_speed_t** cells, t_spee
             ** appropriate directions of travel and writing into
             ** scratch space grid */
             __m256 data[NSPEEDS];
-            int pos_set=pos/SIMDLEN;
+            int pos_set=pos>>3;
             data[0]=_mm256_load_ps(&(*tmp_cells)[pos_set].speed[0][0]); /* central cell, no movement */
-            int up_set=(ynx+ii)/SIMDLEN;
-            int down_set=(ysx+ii)/SIMDLEN;
+            int up_set=(ynx+ii)>>3;
+            int down_set=(ysx+ii)>>3;
             speed_update_atom(data,tmp_cells,1,pos_set,pos_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
             speed_update_atom(data,tmp_cells,3,pos_set,pos_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
 

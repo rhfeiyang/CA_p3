@@ -147,7 +147,7 @@ int initialise(const char* paramfile, const char* obstaclefile,
     while ((retval = fscanf(fp, "%d %d %d\n", &xx, &yy, &blocked)) != EOF)
     {
         /* Center the obstacle on the y-axis. */
-        yy = yy + params->ny/2;
+        yy = yy + (params->ny>>1);
 
         /* some checks */
         if (retval != 3) die("expected 3 values per line in obstacle file", __LINE__, __FILE__);
