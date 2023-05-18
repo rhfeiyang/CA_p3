@@ -139,7 +139,7 @@ int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_
                 /* u[8] =   u_x - u_y; */  /* south-east */
                 /*TODO: Do above using simd*/
                 __m256 u_vec[NSPEEDS];
-                u_vec[0]=zero_vec;
+//                u_vec[0]=zero_vec;
                 u_vec[1]= _mm256_mul_ps(u_x_vec,three_vec);
                 u_vec[2]=_mm256_mul_ps(u_y_vec,three_vec);
                 u_vec[3]=_mm256_sub_ps(zero_vec,u_vec[1]);
@@ -535,6 +535,9 @@ static inline void speed_update_atom(__m256 data[NSPEEDS],t_speed_t ** tmp_cells
 ** Particles flow to the corresponding cell according to their speed direaction.
 */
 /*tmp_cells->tmp_cells*/
+const float cst1 =2.0/3.0;
+const float cst2 =1.0/6.0;
+const float cst3 =1.0/2.0;
 int streaming_boundary_collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets,int* obstacles) {
     /* loop over _all_ cells */
 //  printf("%f\n",(*cells)[0].speed[5][0]);
@@ -592,9 +595,6 @@ int streaming_boundary_collision(const t_param params, t_speed_t** cells, t_spee
             speed_update_atom(data,tmp_cells,5,pos_set,down_set,x_w,jx,ii,ysx,x_e,ynx,&left_mask,&right_mask);
             /*left wall*/
             if(ii==0){
-                const float cst1 =2.0/3.0;
-                const float cst2 =1.0/6.0;
-                const float cst3 =1.0/2.0;
                 float local_density = (  data[0][0]
                                          + data[2][0]
                                          + data[4][0]
@@ -636,7 +636,7 @@ int streaming_boundary_collision(const t_param params, t_speed_t** cells, t_spee
 
 
             __m256 u_vec[NSPEEDS];
-            u_vec[0]=zero_vec;
+//            u_vec[0]=zero_vec;
             u_vec[1]= _mm256_mul_ps(u_x_vec,three_vec);
             u_vec[2]=_mm256_mul_ps(u_y_vec,three_vec);
             u_vec[3]=_mm256_sub_ps(zero_vec,u_vec[1]);
