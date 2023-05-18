@@ -258,18 +258,42 @@ int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_
 
 static inline void speed_update(t_speed_t** cells,t_speed_t ** tmp_cells,int dir,int pos_set,int neighbour_set,int x_w, int jx,int ii,int ysx,int x_e,int ynx,const __m256i* left_mask,const __m256i* right_mask){
     int tmp_pos,set,ind;
-    if(dir==1) { tmp_pos = x_w + jx;}
+    /*if(dir==1) { tmp_pos = x_w + jx;}
     else if (dir==2) tmp_pos=ii  + ysx;
     else if (dir==3) { tmp_pos = x_e + jx; }
     else if (dir==4) tmp_pos=ii  + ynx;
     else if (dir==5) { tmp_pos = x_w + ysx; }
     else if (dir==6) { tmp_pos = x_e + ysx; }
     else if (dir==7) { tmp_pos = x_e + ynx; }
-    else if (dir==8) { tmp_pos = x_w + ynx; }
-
-
-    int source_dir=dir;
+    else if (dir==8) { tmp_pos = x_w + ynx; }*/
+    switch (dir) {
+        case 1:
+            tmp_pos = x_w + jx;
+            break;
+        case 2:
+            tmp_pos=ii  + ysx;
+            break;
+        case 3:
+            tmp_pos = x_e + jx;
+            break;
+        case 4:
+            tmp_pos=ii  + ynx;
+            break;
+        case 5:
+            tmp_pos = x_w + ysx;
+            break;
+        case 6:
+            tmp_pos = x_e + ysx;
+            break;
+        case 7:
+            tmp_pos = x_e + ynx;
+            break;
+        case 8:
+            tmp_pos = x_w + ynx;
+            break;
+    }
     set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+    int source_dir=dir;
 //  printf("pos_x: %d, pos_y:%d ,dir: %d ,temp_x: %d, temp_y:%d\n",pos_set*8%4096,pos_set*8/4096,dir,tmp_pos%4096,tmp_pos/4096);
     if(dir==2 || dir==4){
         if(ynx==0 && dir==4) { source_dir = 2;set=pos_set; }
@@ -315,9 +339,10 @@ int streaming_boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_
     {
         int jx = jj * params.nx;
         int y_n = (jj + 1) % params.ny;
-        int y_s = (jj != 0) ? (jj-1) : (params.ny - 1);
         int ynx = y_n*params.nx;
+        int y_s = (jj != 0) ? (jj-1) : (params.ny - 1);
         int ysx = y_s*params.nx;
+
         for (int ii = 0; ii < params.nx; ii+=SIMDLEN)
         {
             int pos= ii + jj*params.nx;
@@ -492,17 +517,43 @@ int streaming_boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_
 /*tmp_cells->data*/
 static inline void speed_update_atom(__m256 data[NSPEEDS],t_speed_t ** tmp_cells,int dir,int pos_set,int neighbour_set,int x_w, int jx,int ii,int ysx,int x_e,int ynx,const __m256i* left_mask,const __m256i* right_mask){
     int tmp_pos,set,ind;
-    if(dir==1) { tmp_pos = x_w + jx;}
+    /*if(dir==1) { tmp_pos = x_w + jx;}
     else if (dir==2) tmp_pos=ii  + ysx;
     else if (dir==3) { tmp_pos = x_e + jx; }
     else if (dir==4) tmp_pos=ii  + ynx;
     else if (dir==5) { tmp_pos = x_w + ysx; }
     else if (dir==6) { tmp_pos = x_e + ysx; }
     else if (dir==7) { tmp_pos = x_e + ynx; }
-    else if (dir==8) { tmp_pos = x_w + ynx; }
+    else if (dir==8) { tmp_pos = x_w + ynx; }*/
+    switch (dir) {
+        case 1:
+            tmp_pos = x_w + jx;
+            break;
+        case 2:
+            tmp_pos=ii  + ysx;
+            break;
+        case 3:
+            tmp_pos = x_e + jx;
+            break;
+        case 4:
+            tmp_pos=ii  + ynx;
+            break;
+        case 5:
+            tmp_pos = x_w + ysx;
+            break;
+        case 6:
+            tmp_pos = x_e + ysx;
+            break;
+        case 7:
+            tmp_pos = x_e + ynx;
+            break;
+        case 8:
+            tmp_pos = x_w + ynx;
+            break;
+    }
 
-    int source_dir=dir;
     set=tmp_pos/SIMDLEN; ind=tmp_pos%SIMDLEN;
+    int source_dir=dir;
 //  printf("pos_x: %d, pos_y:%d ,dir: %d ,temp_x: %d, temp_y:%d\n",pos_set*8%4096,pos_set*8/4096,dir,tmp_pos%4096,tmp_pos/4096);
     if(dir==2 || dir==4){
         if(ynx==0 && dir==4) { source_dir = 2;set=pos_set; }
