@@ -14,30 +14,30 @@ int streaming_boundary_collision(int iteration,const t_param params, t_speed_t**
 ** timestep calls, in order, the functions:
 ** collision(), obstacle(), streaming() & boundary()
 */
-int timestep(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets, int* obstacles)
-{
-    /* The main time overhead, you should mainly optimize these processes. */
-    /*int obstacle_num=0;
-    for(int i=0;i< params.nx*params.ny;i++){
-      if(obstacles[i]==1){
-        obstacle_num++;
-      }
-    }
-  printf("total:%d， obstacle:%d\n", params.nx*params.ny,obstacle_num);*/
-
-//    obstacle(params, cells, tmp_cells, obstacles);
-
-//    boundary(params, cells, tmp_cells, inlets);
-    /*for(int i=0;i<NSPEEDS;i++){
-      printf("tmp(*cells)[%d].speeds[0]=%f\n",i,(*tmp_cells)[i][0]);
-    }*/
-    collision_obstacle(params, cells, tmp_cells, obstacles);
-    /*for(int i=0;i< times-1;++i){
-      streaming_boundary_collision(params,cells, tmp_cells, inlets,obstacles);
-    }*/
-    streaming_boundary(params.nx-1,params, cells, tmp_cells, inlets);
-    return EXIT_SUCCESS;
-}
+//int timestep(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets, int* obstacles)
+//{
+//    /* The main time overhead, you should mainly optimize these processes. */
+//    /*int obstacle_num=0;
+//    for(int i=0;i< params.nx*params.ny;i++){
+//      if(obstacles[i]==1){
+//        obstacle_num++;
+//      }
+//    }
+//  printf("total:%d， obstacle:%d\n", params.nx*params.ny,obstacle_num);*/
+//
+////    obstacle(params, cells, tmp_cells, obstacles);
+//
+////    boundary(params, cells, tmp_cells, inlets);
+//    /*for(int i=0;i<NSPEEDS;i++){
+//      printf("tmp(*cells)[%d].speeds[0]=%f\n",i,(*tmp_cells)[i][0]);
+//    }*/
+//    collision_obstacle(params, cells, tmp_cells, obstacles);
+//    /*for(int i=0;i< times-1;++i){
+//      streaming_boundary_collision(params,cells, tmp_cells, inlets,obstacles);
+//    }*/
+//    streaming_boundary(params.nx-1,params, cells, tmp_cells, inlets);
+//    return EXIT_SUCCESS;
+//}
 
 /*
 ** The collision of fluids in the cell is calculated using
@@ -68,7 +68,7 @@ int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_
 #pragma omp parallel for simd schedule(static)
     for (int jj = 0; jj < params.ny; jj++)
     {
-        for (int ii = 0,set = (jj*params.nx)/SIMDLEN; ii < params.nx; ii+=SIMDLEN, set++)
+        for (int ii = 0,set = (jj*params.nx)/SIMDLEN; ii < SIMDLEN; ii+=SIMDLEN, set++)
         {
             const int pos = ii + jj*params.nx;
             int ind=pos%SIMDLEN;
