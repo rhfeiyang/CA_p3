@@ -555,16 +555,17 @@ int streaming_boundary_collision(const t_param params, t_speed_t** cells, t_spee
 #pragma omp parallel for simd schedule(static)
     for (int jj = 0; jj < params.ny; jj++)
     {
-        int jx = jj * params.nx;
+
         int y_n = (jj + 1) % params.ny;
-        int y_s = (jj != 0) ? (jj - 1) : (params.ny - 1);
         int ynx = y_n*params.nx;
+        int y_s = (jj != 0) ? (jj - 1) : (params.ny - 1);
         int ysx = y_s*params.nx;
+        int jx = jj * params.nx;
+
+
         for (int ii = 0; ii <params.nx; ii+=SIMDLEN)
         {
             int pos= ii+jx;
-
-
             /* determine indices of axis-direction neighbours
             ** respecting periodic boundary conditions (wrap around) */
 
