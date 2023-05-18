@@ -56,13 +56,15 @@ int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_
     ** are in the scratch-space grid */
     const __m256 zero_vec=_mm256_setzero_ps();
     /*const __m256 one_vec=_mm256_set1_ps(1.f);*/
-    __m256i one_int_vec=_mm256_set1_epi32(1);
+    const __m256i one_int_vec=_mm256_set1_epi32(1);
     const __m256 half_vec=_mm256_set1_ps(0.5f);
     const __m256 three_vec=_mm256_set1_ps(3.f);
     /*const __m256 c_sq_vec=_mm256_set1_ps(c_sq);*/
     const __m256 w0_vec=_mm256_set1_ps(w0);
     const __m256 w1_vec=_mm256_set1_ps(w1);
     const __m256 w2_vec=_mm256_set1_ps(w2);
+    const __m256 omega_vec=_mm256_set1_ps(params.omega);
+    const __m256 sub_three_vec=zero_vec-three_vec;
 #pragma omp parallel for simd schedule(static)
     for (int jj = 0; jj < params.ny; jj++)
     {
@@ -122,7 +124,7 @@ int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_
                 /* velocity squared */
                 /* float u_sq = u_x * u_x + u_y * u_y; */
                 __m256 u_sq_vec= _mm256_add_ps(_mm256_mul_ps(u_x_vec,u_x_vec),_mm256_mul_ps(u_y_vec,u_y_vec));
-                __m256 u_sq_vec_3=_mm256_mul_ps(u_sq_vec,_mm256_set1_ps(-3.f));
+                __m256 u_sq_vec_3=_mm256_mul_ps(u_sq_vec,sub_three_vec);
                 /* directional velocity components */
 
                 /* float u[NSPEEDS]; */
@@ -221,7 +223,7 @@ int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_
 
                 /* simd */
                 /* printf("%f\n",(*cells)[pos].speeds[1]); */
-                __m256 omega_vec=_mm256_set1_ps(params.omega);
+
                 __m256 obstacle_mask=_mm256_castsi256_ps(_mm256_cmpeq_epi32(obstacle_mask_inv, one_int_vec));
                 _mm256_store_ps(&(*tmp_cells)[set].speed[0][ind],_mm256_blendv_ps(data[0],_mm256_add_ps(data[0],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[0],data[0]))),obstacle_mask));
                 _mm256_store_ps(&(*tmp_cells)[set].speed[1][ind],_mm256_blendv_ps(data[3],_mm256_add_ps(data[1],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[1],data[1]))),obstacle_mask));
@@ -395,14 +397,15 @@ static inline void collision_obstacle_atom(const t_param params, t_speed_t** tmp
     ** are in the scratch-space grid */
     const __m256 zero_vec=_mm256_setzero_ps();
     /*const __m256 one_vec=_mm256_set1_ps(1.f);*/
-    __m256i one_int_vec=_mm256_set1_epi32(1);
+    const __m256i one_int_vec=_mm256_set1_epi32(1);
     const __m256 half_vec=_mm256_set1_ps(0.5f);
     const __m256 three_vec=_mm256_set1_ps(3.f);
     /*const __m256 c_sq_vec=_mm256_set1_ps(c_sq);*/
     const __m256 w0_vec=_mm256_set1_ps(w0);
     const __m256 w1_vec=_mm256_set1_ps(w1);
     const __m256 w2_vec=_mm256_set1_ps(w2);
-
+    const __m256 omega_vec=_mm256_set1_ps(params.omega);
+    const __m256 sub_three_vec=zero_vec-three_vec;
 
 
     __m256i obstacle_mask_inv=_mm256_xor_si256(obstacles,one_int_vec);
@@ -416,7 +419,7 @@ static inline void collision_obstacle_atom(const t_param params, t_speed_t** tmp
         /* velocity squared */
         /* float u_sq = u_x * u_x + u_y * u_y; */
         __m256 u_sq_vec= _mm256_add_ps(_mm256_mul_ps(u_x_vec,u_x_vec),_mm256_mul_ps(u_y_vec,u_y_vec));
-        __m256 u_sq_vec_3=_mm256_mul_ps(u_sq_vec,_mm256_set1_ps(-3.f));
+        __m256 u_sq_vec_3=_mm256_mul_ps(u_sq_vec,sub_three_vec);
         /* directional velocity components */
 
 
@@ -455,7 +458,7 @@ static inline void collision_obstacle_atom(const t_param params, t_speed_t** tmp
 
         /* simd */
         /* printf("%f\n",(*cells)[pos].speeds[1]); */
-        __m256 omega_vec=_mm256_set1_ps(params.omega);
+
         __m256 obstacle_mask=_mm256_castsi256_ps(_mm256_cmpeq_epi32(obstacle_mask_inv, one_int_vec));
         _mm256_store_ps(&(*tmp_cells)[set].speed[0][0],_mm256_blendv_ps(data[0],_mm256_add_ps(data[0],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[0],data[0]))),obstacle_mask));
         _mm256_store_ps(&(*tmp_cells)[set].speed[1][0],_mm256_blendv_ps(data[3],_mm256_add_ps(data[1],_mm256_mul_ps(omega_vec,_mm256_sub_ps(d_equ[1],data[1]))),obstacle_mask));
