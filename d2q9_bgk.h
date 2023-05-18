@@ -50,5 +50,5 @@
 int timestep(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets, int* obstacles);
 int collision_obstacle(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, int* obstacles);
 int streaming_boundary(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets);
-int streaming_boundary_collision(const t_param params, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets,int* obstacles);
+int streaming_boundary_collision(const t_param params,int sets_x, t_speed_t** cells, t_speed_t** tmp_cells, float* inlets,int* obstacles);
 #endif
