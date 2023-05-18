@@ -33,8 +33,8 @@ float av_velocity(const t_param params, t_speed_t** cells, int* obstacles)
             {
                 /* local density total */
                 float local_density = 0.f;
-                const int set=pos/SIMDLEN;
-                int ind=pos%SIMDLEN;
+                const int set=pos>>3;
+                int ind=pos&7;
                 for (int kk = 0; kk < NSPEEDS; kk++)
                 {
                     local_density += (*cells)[set].speed[kk][ind];

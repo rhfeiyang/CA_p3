@@ -78,7 +78,7 @@ int initialise(const char* paramfile, const char* obstaclefile,
     /* 'helper' grid, used as scratch space */
     /**tmp_cells_ptr = (t_speed*)malloc(sizeof(t_speed) * (params->ny * params->nx));
     if (*tmp_cells_ptr == NULL) die("cannot allocate memory for tmp_cells", __LINE__, __FILE__);*/
-    const int set_num=(params->ny * params->nx)/SIMDLEN;
+    const int set_num=(params->ny * params->nx)>>3;
 
     *cells_ptr= (t_speed_t*)aligned_alloc(32, sizeof(t_speed_t) * set_num);
     *tmp_cells_ptr= (t_speed_t*)aligned_alloc(32, sizeof(t_speed_t) * set_num);
@@ -226,8 +226,8 @@ int write_state(char* filename, const t_param params, t_speed_t** cells, int* ob
             }
             else
             { /* no obstacle */
-                const int set=pos/SIMDLEN;
-                int ind=pos%SIMDLEN;
+                const int set=pos>>3;
+                int ind=pos&7;
                 local_density = 0.f;
 
                 for (int kk = 0; kk < NSPEEDS; kk++)
