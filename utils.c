@@ -122,7 +122,6 @@ int initialise(const char* paramfile, const char* obstaclefile,
             else w = w2;
             for (int j = 0; j < SIMDLEN; j++) {
                 (*cells_ptr)[set].speed[i][j] = w;
-                (*tmp_cells_ptr)[set].speed[i][j] = w;
             }
         }
     }
