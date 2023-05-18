@@ -87,11 +87,12 @@ int main(int argc, char* argv[])
     comp_time = timstr.tv_sec + (timstr.tv_usec / 1000000.0);
 
     /* timestep loop */
+    const int sets_x=params.nx/SIMDLEN;
     collision_obstacle(params, &cells, &tmp_cells, obstacles);
     for (int tt = 0; tt < params.maxIters-1; tt++)
     {
 //        timestep(params, &cells, &tmp_cells, inlets, obstacles);
-        streaming_boundary_collision(params, &cells, &tmp_cells, inlets, obstacles);
+        streaming_boundary_collision(params,sets_x, &cells, &tmp_cells, inlets, obstacles);
         /* Visualization */
 #ifdef VISUAL
         if (tt % 1000 == 0) {
